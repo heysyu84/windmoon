@@ -1,0 +1,16 @@
+const paths={users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.9"/><circle cx="9" cy="7" r="4"/><path d="M16 3.2a4 4 0 0 1 0 7.6"/>',wallet:'<path d="M21 8V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h16v10H5a3 3 0 0 1-3-3V7M21 12h-5v5h5"/>',menu:'<path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3ZM8 7h8M8 11h8M8 15h4"/>',card:'<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c.5-3 5.5-3 6 0M14 10h5M14 14h4"/>',glass:'<path d="m3 3 9 10L21 3ZM12 13v8M7 21h10M6 6h12"/>'};
+const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icon=(name,size=22)=>`<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]||paths.menu}</svg>`;
+const container=document.querySelector('#modules');let modules=[];
+document.querySelector('#today').textContent=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'short'}).format(new Date());
+function render(query=''){
+ const matching=modules.filter(m=>[m.name,m.english,m.description,m.group].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
+ container.innerHTML=matching.length?[...new Set(matching.map(m=>m.group))].map(group=>`<section class="module-section"><div class="section-heading"><h2>${escape(group)}</h2><span>${matching.filter(m=>m.group===group).length}개의 도구</span></div><div class="module-grid ${group==='매장 운영'?'primary-grid':''}">${matching.filter(m=>m.group===group).map(m=>`<a class="module-card ${m.group==='매장 운영'?'primary-card':''}" href="${escape(m.href)}" data-module="${m.id}"><div class="card-top"><span class="module-icon">${icon(m.icon,26)}</span><span class="module-english">${escape(m.english)}</span></div><h3>${escape(m.name)}</h3><p>${escape(m.description)}</p><div class="card-foot"><span>열기</span><span aria-hidden="true">↗</span></div></a>`).join('')}</div></section>`).join(''):'<div class="empty">검색한 메뉴가 없습니다.</div>';
+}
+try{
+ const response=await fetch('./modules.json',{cache:'no-cache'});if(!response.ok)throw Error();modules=await response.json();
+ document.querySelector('#suite-navigation').insertAdjacentHTML('beforeend',modules.map(m=>`<a class="nav-item" href="${escape(m.href)}" data-module="${m.id}" title="${escape(m.name)}"><span class="nav-icon">${icon(m.icon,19)}</span><span>${escape(m.name)}</span></a>`).join(''));render();
+ try{const last=modules.find(m=>m.id===localStorage.getItem('windmoon-suite-last-module'));if(last){const resume=document.querySelector('#resume');resume.hidden=false;resume.href=last.href;resume.dataset.module=last.id;document.querySelector('#resume-name').textContent=last.name;}}catch{}
+}catch{container.innerHTML='<div class="empty">메뉴를 불러오지 못했습니다. <a href="./staff/">직원관리</a> 또는 <a href="./operations/">운영관리</a>를 직접 열 수 있습니다.</div>';}
+document.querySelector('#module-search').addEventListener('input',event=>render(event.target.value));
+document.addEventListener('click',event=>{const link=event.target.closest('[data-module]');if(link)try{localStorage.setItem('windmoon-suite-last-module',link.dataset.module);}catch{}});

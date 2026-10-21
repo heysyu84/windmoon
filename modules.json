@@ -1,0 +1,7 @@
+[
+ {"id":"staff","name":"직원관리","english":"STAFF","description":"근무 입력부터 직원 정보, 급여 정산과 지급 기록까지.","group":"매장 운영","icon":"users","href":"staff/"},
+ {"id":"operations","name":"운영관리","english":"OPERATIONS","description":"일마감, 매출과 지출, 인건비와 자금 흐름을 함께.","group":"매장 운영","icon":"wallet","href":"operations/"},
+ {"id":"menu","name":"메뉴판 편집","english":"MENU STUDIO","description":"보틀과 세트, 칵테일 메뉴를 편집하고 인쇄하세요.","group":"매장 도구","icon":"menu","href":"menu/"},
+ {"id":"cards","name":"명함 편집","english":"CARD STUDIO","description":"풍월 로고와 연락처로 명함 디자인을 준비하세요.","group":"매장 도구","icon":"card","href":"cards/"},
+ {"id":"recipes","name":"바 레시피","english":"BAR RECIPES","description":"제조법, 용량과 잔 규격을 한곳에서 확인하세요.","group":"매장 도구","icon":"glass","href":"recipes/"}
+]
