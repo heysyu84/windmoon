@@ -15,9 +15,7 @@
     "description": "일마감, 매출과 지출, 인건비와 자금 흐름을 함께.",
     "group": "매장 운영",
     "icon": "wallet",
-    "href": "operations/",
-    "launchHref": "https://windmoon-operations.heysyu457310.chatgpt.site/signin-with-chatgpt?return_to=%2F",
-    "requiresSignIn": true
+    "href": "operations/"
   },
   {
     "id": "menu",
@@ -26,9 +24,7 @@
     "description": "보틀과 세트, 칵테일 메뉴를 편집하고 인쇄하세요.",
     "group": "매장 도구",
     "icon": "menu",
-    "href": "menu/",
-    "launchHref": "https://pungwol-print-studio.heysyu457310.chatgpt.site/signin-with-chatgpt?return_to=%2F",
-    "requiresSignIn": true
+    "href": "menu/"
   },
   {
     "id": "cards",
@@ -37,9 +33,7 @@
     "description": "풍월 로고와 연락처로 명함 디자인을 준비하세요.",
     "group": "매장 도구",
     "icon": "card",
-    "href": "cards/",
-    "launchHref": "https://windmoon-card-studio.heysyu457310.chatgpt.site/signin-with-chatgpt?return_to=%2F",
-    "requiresSignIn": true
+    "href": "cards/"
   },
   {
     "id": "recipes",
@@ -48,8 +42,6 @@
     "description": "제조법, 용량과 잔 규격을 한곳에서 확인하세요.",
     "group": "매장 도구",
     "icon": "glass",
-    "href": "recipes/",
-    "launchHref": "https://pungwolgwan-bar-recipes.heysyu457310.chatgpt.site/signin-with-chatgpt?return_to=%2F",
-    "requiresSignIn": true
+    "href": "recipes/"
   }
 ]

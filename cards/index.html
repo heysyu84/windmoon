@@ -1,1 +1,82 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>WIND MOON · 명함 편집</title><link rel="stylesheet" href="../portal.css"></head><body><main style="margin:10vh auto;max-width:600px;padding:24px"><p class="eyebrow">WIND MOON WORKSPACE</p><h1>명함 편집</h1><p style="margin:20px 0">ChatGPT 계정으로 로그인한 뒤 명함 편집 화면으로 이동합니다.</p><p><a href="https://windmoon-card-studio.heysyu457310.chatgpt.site/signin-with-chatgpt?return_to=%2F" target="_top" style="text-decoration:underline">로그인하고 명함 편집 열기 →</a></p><p style="margin-top:30px"><a href="../" target="_top">← WIND MOON 대문</a></p></main></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#F6F4EF">
+  <title>WINDMOON — 명함 편집실</title>
+  <meta name="description" content="풍월의 가로·세로 명함을 직접 편집하고 인스타그램 QR과 인쇄용 파일을 완성하세요.">
+  <link rel="icon" href="assets/windmoon-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="assets/opentype.min.js" defer></script>
+  <script src="assets/qrcode.js" defer></script>
+  <script src="assets/pdf-lib.min.js" defer></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body><a href="../" class="suite-return" style="display:inline-block;padding:8px 16px;color:inherit;text-decoration:none">← WIND MOON 전체 메뉴</a>
+  <header class="header">
+    <div class="brand"><img src="assets/windmoon-logo.svg" alt="WINDMOON | 풍월 — Lounge & Club"><span class="brand-divider"></span><div><p class="eyebrow">WINDMOON STUDIO</p><h1>명함 편집실</h1></div></div>
+    <div class="header-actions"><span id="saveStatus" class="save-status" role="status">불러오는 중</span><button id="undo" class="icon-button" title="되돌리기" aria-label="되돌리기" disabled>↶</button><button id="redo" class="icon-button" title="다시 실행" aria-label="다시 실행" disabled>↷</button><button id="exportTop" class="button primary" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>파일 내보내기</span></button></div>
+  </header>
+  <main class="studio">
+    <aside class="editor" aria-label="명함 편집 설정" tabindex="0">
+      <div class="editor-intro"><span class="small-caps">EDIT YOUR CARD</span><p>정보를 입력하고<br>나만의 명함을 완성하세요.</p></div>
+      <details id="logoSection" class="section" open>
+        <summary><span class="section-number">01</span><span>로고 크기·정렬</span><span class="chevron">⌄</span></summary>
+        <div class="section-content">
+          <label>로고를 편집할 면<select id="logoSide"><option value="front">앞면 로고</option><option value="back">뒷면 로고</option></select></label>
+          <div class="alignment-buttons" role="group" aria-label="로고 좌우 정렬">
+            <button class="button subtle" data-logo-align="left" aria-pressed="false">좌측</button>
+            <button class="button subtle" data-logo-align="center" aria-pressed="false">좌우 중앙</button>
+            <button class="button subtle" data-logo-align="right" aria-pressed="false">우측</button>
+          </div>
+          <button id="centerLogoBoth" class="button subtle">명함 정중앙에 배치</button>
+          <label class="range-label"><span>로고 전체 크기<output id="logoOverallValue">100%</output></span><input id="logoOverall" type="range" min="50" max="180" step="1" value="100"></label>
+          <div class="component-control"><label for="symbolScale">파도 심벌 크기</label><div class="percent-input"><input type="number" data-logo-style="symbolScale" min="30" max="300" step="1" value="100" aria-label="파도 심벌 크기 백분율"><span>%</span></div><input id="symbolScale" type="range" data-logo-style="symbolScale" min="30" max="300" step="1" value="100"></div>
+          <div class="component-control"><label for="wordmarkScale">WINDMOON | 풍월 크기</label><div class="percent-input"><input type="number" data-logo-style="wordmarkScale" min="30" max="300" step="1" value="100" aria-label="WINDMOON 풍월 글자 크기 백분율"><span>%</span></div><input id="wordmarkScale" type="range" data-logo-style="wordmarkScale" min="30" max="300" step="1" value="100"></div>
+          <div class="component-control"><label for="taglineScale">LOUNGE &amp; CLUB 크기</label><div class="percent-input"><input type="number" data-logo-style="taglineScale" min="30" max="300" step="1" value="100" aria-label="LOUNGE AND CLUB 글자 크기 백분율"><span>%</span></div><input id="taglineScale" type="range" data-logo-style="taglineScale" min="30" max="300" step="1" value="100"></div>
+          <div class="component-control"><label for="symbolGap">심벌 ↔ 상호 간격</label><div class="percent-input"><input type="number" data-logo-style="symbolGap" min="0" max="300" step="1" value="100" aria-label="심벌과 상호 간격 백분율"><span>%</span></div><input id="symbolGap" type="range" data-logo-style="symbolGap" min="0" max="300" step="1" value="100"></div>
+          <div class="component-control"><label for="taglineGap">상호 ↔ 부제 간격</label><div class="percent-input"><input type="number" data-logo-style="taglineGap" min="0" max="300" step="1" value="100" aria-label="상호와 부제 간격 백분율"><span>%</span></div><input id="taglineGap" type="range" data-logo-style="taglineGap" min="0" max="300" step="1" value="100"></div>
+          <p id="logoDimensions" class="field-help">로고를 불러오는 중입니다.</p>
+          <button id="resetLogoStyle" class="button subtle">이 면의 로고 초기화</button>
+          <p class="field-help">가로·세로와 앞·뒷면별로 저장됩니다. 정렬한 뒤 크기를 바꿔도 정렬이 유지됩니다.</p>
+        </div>
+      </details>
+      <details class="section" open>
+        <summary><span class="section-number">02</span><span>이름과 직책</span><span class="chevron">⌄</span></summary>
+        <div class="section-content"><label>한글 이름<input data-field="koreanName" maxlength="60" autocomplete="off"></label><label>영문 이름<input data-field="englishName" maxlength="100" autocomplete="off"></label><div class="field-pair"><label>직책 · 한글<input data-field="titleKo" maxlength="30" autocomplete="off"></label><label>직책 · 영문<input data-field="titleEn" maxlength="50" autocomplete="off"></label></div></div>
+      </details>
+      <details class="section" open>
+        <summary><span class="section-number">03</span><span>연락처와 QR</span><span class="chevron">⌄</span></summary>
+        <div class="section-content"><label>전화번호<input data-field="phone" maxlength="60" inputmode="tel" autocomplete="off"></label><label>이메일<input data-field="email" maxlength="100" inputmode="email" autocomplete="off"></label><label>인스타그램<input data-field="instagram" maxlength="100" autocomplete="off" spellcheck="false"></label><label class="check-row"><input type="checkbox" id="syncQr">인스타 계정과 QR 주소 연동</label><label>QR 연결 주소<input data-field="qrUrl" maxlength="500" inputmode="url" autocomplete="off" spellcheck="false"><span id="qrHelp" class="field-help">입력한 주소에 맞춰 QR이 자동 생성됩니다.</span></label><div class="inline-options"><label class="check-row"><input id="showQr" type="checkbox">명함에 QR 표시</label><a id="qrLink" class="text-link" target="_blank" rel="noopener noreferrer">연결 확인 ↗</a></div></div>
+      </details>
+      <details class="section">
+        <summary><span class="section-number">04</span><span>주소</span><span class="chevron">⌄</span></summary>
+        <div class="section-content"><label>주소 · 첫째 줄<input data-field="addressLine1" maxlength="120" autocomplete="off"></label><label>주소 · 둘째 줄<input data-field="addressLine2" maxlength="120" autocomplete="off"></label></div>
+      </details>
+      <details class="section">
+        <summary><span class="section-number">05</span><span>색상과 글자</span><span class="chevron">⌄</span></summary>
+        <div class="section-content"><div class="preset-list" role="group" aria-label="색상 프리셋"><button class="palette" data-palette="classic"><span class="swatches"><i style="background:#121617"></i><i style="background:#F4F1E8"></i></span>차콜·아이보리</button><button class="palette" data-palette="midnight"><span class="swatches"><i style="background:#152D36"></i><i style="background:#ECE4D6"></i></span>미드나이트</button><button class="palette" data-palette="mono"><span class="swatches"><i style="background:#151515"></i><i style="background:#FFFFFF"></i></span>흑백</button></div><div class="color-grid"><label><input type="color" data-color="frontBg"><span>앞면 배경</span></label><label><input type="color" data-color="frontInk"><span>앞면 로고</span></label><label><input type="color" data-color="backBg"><span>뒷면 배경</span></label><label><input type="color" data-color="backInk"><span>뒷면 글자</span></label><label><input type="color" data-color="muted"><span>보조 글자</span></label><label><input type="color" data-color="rule"><span>구분선</span></label></div><label class="range-label"><span>한글 이름 크기<output id="nameScaleValue">100%</output></span><input type="range" id="nameScale" min="60" max="160" step="1"></label><label class="range-label"><span>본문 전체 크기<output id="bodyScaleValue">100%</output></span><input type="range" id="bodyScale" min="60" max="160" step="1"></label><label class="range-label"><span>직책 크기<output id="titleScaleValue">100%</output></span><input type="range" id="titleScale" min="50" max="200" step="1" value="100"></label><label class="range-label"><span>영문 이름 크기<output id="englishScaleValue">100%</output></span><input type="range" id="englishScale" min="50" max="200" step="1" value="100"></label><label class="range-label"><span>연락처 크기<output id="contactScaleValue">100%</output></span><input type="range" id="contactScale" min="50" max="200" step="1" value="100"></label><label class="range-label"><span>주소 크기<output id="addressScaleValue">100%</output></span><input type="range" id="addressScale" min="50" max="200" step="1" value="100"></label><div class="font-row"><div><span class="label-text">편집 글꼴</span><p id="fontName">Pretendard</p></div><button id="fontButton" class="button subtle">내 폰트 넣기</button></div><input type="file" id="fontFile" accept=".ttf,.otf" hidden><button id="fontReset" class="text-link" hidden>Pretendard로 돌아가기</button><p class="field-help">TTF·OTF 지원. 새 폰트에 없는 한글은 Pretendard로 표시합니다. 로고의 글자 형태는 유지됩니다.</p></div>
+      </details>
+      <details id="layoutSection" class="section">
+        <summary><span class="section-number">06</span><span>선택 요소 배치</span><span class="chevron">⌄</span></summary>
+        <div class="section-content"><p id="selectionHint" class="field-help">명함의 로고나 글자를 눌러 선택하세요.<br>드래그하거나 이동 값을 입력할 수 있습니다.</p><div class="field-pair"><label>편집 면<select id="layoutSide"><option value="front">앞면</option><option value="back">뒷면</option></select></label><label>요소<select id="layoutGroup"><option value="logo">로고</option></select></label></div><div class="field-pair"><label>가로 이동 · mm<input id="offsetX" type="number" min="-60" max="60" step="0.2" value="0"></label><label>세로 이동 · mm<input id="offsetY" type="number" min="-100" max="100" step="0.2" value="0"></label></div><label class="range-label"><span>요소 크기<output id="groupScaleValue">100%</output></span><input id="groupScale" type="range" min="50" max="180" step="1" value="100"></label><div class="alignment-buttons" role="group" aria-label="선택 요소 좌우 정렬"><button class="button subtle" data-align-x="left" aria-pressed="false">좌측</button><button class="button subtle" data-align-x="center" aria-pressed="false">좌우 중앙</button><button class="button subtle" data-align-x="right" aria-pressed="false">우측</button></div><div class="alignment-buttons" role="group" aria-label="선택 요소 상하 정렬"><button class="button subtle" data-align-y="top" aria-pressed="false">상단</button><button class="button subtle" data-align-y="center" aria-pressed="false">상하 중앙</button><button class="button subtle" data-align-y="bottom" aria-pressed="false">하단</button></div><p id="selectionSize" class="field-help"></p><button id="resetGroup" class="button subtle">이 요소의 배치 초기화</button><p class="field-help">방향키로 0.2mm, Shift + 방향키로 1mm 이동합니다.</p></div>
+      </details>
+      <div class="settings-actions"><button id="saveSettings" class="button subtle">설정 저장</button><button id="loadSettings" class="button subtle">설정 불러오기</button><input type="file" id="settingsFile" accept=".json" hidden><button id="resetAll" class="text-link muted-link">처음 시안으로 초기화</button></div>
+    </aside>
+    <section class="workspace" aria-label="명함 미리보기" tabindex="0">
+      <div class="workspace-toolbar"><div class="orientation-tabs" role="group" aria-label="명함 방향"><button data-orientation="horizontal" class="active" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="16" height="10" rx="1"/></svg>가로형</button><button data-orientation="portrait" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="2" width="10" height="16" rx="1"/></svg>세로형</button></div><label class="check-row guide-toggle"><input id="showGuides" type="checkbox">여백·중앙선 보기</label><span id="dimensions" class="dimensions">90 × 50 mm</span></div>
+      <div class="workspace-heading"><div><p class="eyebrow">LIVE PREVIEW</p><h2>한 장에 담는 풍월.</h2><p>앞·뒷면을 보며 바로 편집하세요.</p></div><span class="edition-tag">WINDMOON<br>LOUNGE & CLUB</span></div>
+      <div id="previewGrid" class="preview-grid horizontal"><figure class="card-figure" data-side="front"><div class="card-label"><span>01 <strong>앞면</strong></span><span>BRAND SIDE</span></div><div id="frontPreview" class="card-view" aria-busy="true"><div class="loading"><span></span>로고와 글꼴을 불러오는 중</div></div></figure><figure class="card-figure" data-side="back"><div class="card-label"><span>02 <strong>뒷면</strong></span><span>CONTACT SIDE</span></div><div id="backPreview" class="card-view" aria-busy="true"><div class="loading"><span></span>미리보기 준비 중</div></div></figure></div>
+      <div class="preview-note"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 2 9 7-5 1 3 6-2 1-3-6-3 4Z"/></svg>요소를 클릭하면 배치를 조절할 수 있습니다.</span><button id="resetLayout" class="text-link">현재 방향의 배치 초기화</button></div>
+      <div id="warnings" class="warnings" hidden role="status"></div>
+      <div id="sampleNotice" class="sample-notice"><span class="notice-dot"></span><span>일부 연락처 또는 QR에 디자인 확인용 예시 정보가 남아 있습니다.</span></div>
+      <section id="exportPanel" class="export-panel" aria-labelledby="exportTitle"><div class="export-heading"><div><p class="eyebrow">READY TO PRINT</p><h2 id="exportTitle">편집을 마쳤다면.</h2><p>현재 선택한 방향의 앞·뒷면을 내보냅니다.</p></div><span id="exportDimensions" class="small-caps">90 × 50 MM</span></div><div class="export-actions"><button id="exportPrint" class="export-card dark" disabled><span class="file-type">PDF <span>PRINT</span></span><strong>인쇄용 양면 PDF</strong><small>3mm 도련 + 재단선 · 벡터</small><span class="download-arrow">↗</span></button><button id="exportPdf" class="export-card" disabled><span class="file-type">PDF</span><strong>확인용 양면 PDF</strong><small>실제 명함 크기 · 벡터</small><span class="download-arrow">↗</span></button><div class="export-secondary"><button id="exportSvg" class="button subtle" disabled>SVG 앞·뒷면</button><button id="exportPng" class="button subtle" disabled>PNG 앞·뒷면 · 300dpi</button><p>SVG는 모든 글자와 QR을<br>벡터 경로로 저장합니다.</p></div></div><p class="export-footnote">인쇄용 PDF는 1페이지가 앞면, 2페이지가 뒷면입니다. 실제 연락처와 QR 연결 주소를 확인한 뒤 인쇄하세요.</p></section>
+      <footer class="workspace-footer"><span>WINDMOON | 풍월</span><span>LOUNGE & CLUB</span></footer>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="resetDialog"><form method="dialog"><p class="eyebrow">RESET DESIGN</p><h2>처음 시안으로 돌아갈까요?</h2><p>입력한 정보와 두 방향의 디자인이 초기화됩니다.<br>필요하다면 먼저 설정 파일을 저장하세요.</p><div class="dialog-actions"><button value="cancel" class="button subtle">취소</button><button value="reset" class="button primary">초기화</button></div></form></dialog>
+  <noscript>명함 편집실을 사용하려면 브라우저에서 JavaScript를 허용해 주세요.</noscript>
+</body>
+</html>
