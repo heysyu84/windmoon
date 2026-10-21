@@ -12,11 +12,13 @@
   <script src="assets/qrcode.js" defer></script>
   <script src="assets/pdf-lib.min.js" defer></script>
   <script type="module" src="app.js"></script>
+  <link rel="stylesheet" href="../suite.css?v=20261021-ui">
+  <script type="module" src="../suite-nav.js?v=20261021-ui"></script>
 </head>
-<body><a href="../" class="suite-return" style="display:inline-block;padding:8px 16px;color:inherit;text-decoration:none">← WIND MOON 전체 메뉴</a>
+<body data-suite-page="cards">
   <header class="header">
-    <div class="brand"><img src="assets/windmoon-logo.svg" alt="WINDMOON | 풍월 — Lounge & Club"><span class="brand-divider"></span><div><p class="eyebrow">WINDMOON STUDIO</p><h1>명함 편집실</h1></div></div>
-    <div class="header-actions"><span id="saveStatus" class="save-status" role="status">불러오는 중</span><button id="undo" class="icon-button" title="되돌리기" aria-label="되돌리기" disabled>↶</button><button id="redo" class="icon-button" title="다시 실행" aria-label="다시 실행" disabled>↷</button><button id="exportTop" class="button primary" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>파일 내보내기</span></button></div>
+    <div class="wm-tool-heading"><a href="../">WIND MOON</a><span>/</span><strong>명함 편집</strong></div>
+    <div class="header-actions"><a class="wm-home" href="../" data-wm-home aria-label="풍월 업무공간 홈으로">홈으로</a><span id="saveStatus" class="save-status" role="status">불러오는 중</span><button id="undo" class="icon-button" title="되돌리기" aria-label="되돌리기" disabled>↶</button><button id="redo" class="icon-button" title="다시 실행" aria-label="다시 실행" disabled>↷</button><button id="exportTop" class="button primary" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>파일 내보내기</span></button></div>
   </header>
   <main class="studio">
     <aside class="editor" aria-label="명함 편집 설정" tabindex="0">

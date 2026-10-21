@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-theme="dark">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -11,8 +11,11 @@
   <link rel="stylesheet" href="styles.css">
   <script src="recipes.js" defer></script>
   <script src="app.js" defer></script>
+  <link rel="stylesheet" href="../suite.css?v=20261021-ui">
+  <script type="module" src="../suite-nav.js?v=20261021-ui"></script>
 </head>
-<body>
+<body data-suite-page="recipes">
+<header class="wm-tool-topbar"><div class="wm-tool-heading"><a href="../">WIND MOON</a><span>/</span><strong>바 레시피</strong></div><a class="wm-home" href="../" data-wm-home aria-label="풍월 업무공간 홈으로">홈으로</a></header>
   <a class="skip-link" href="#recipe-list">레시피 목록으로</a>
   <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
@@ -28,9 +31,9 @@
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6m-3 0v3"/></symbol>
     <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/></symbol>
   </svg>
-  <aside class="sidebar" aria-label="메뉴 탐색">
+  <aside class="recipe-index-panel" aria-label="메뉴 탐색">
     <a class="brand" href="./" aria-label="풍월관 레시피 처음으로"><span class="brand-mark">風<br>月館</span><span><strong>풍월관</strong><small>PUNGWOLGWAN</small></span></a>
-    <a class="side-menu-return" href="../">← WIND MOON 전체 메뉴</a><div class="side-caption">BAR RECIPE BOOK</div>
+    <div class="side-caption">BAR RECIPE BOOK</div>
     <nav class="side-nav">
       <button class="side-button active" data-filter="all"><svg><use href="#i-book"/></svg>전체 레시피<span>20</span></button>
       <button class="side-button" data-filter="favorite"><svg><use href="#i-star"/></svg>즐겨찾기<span id="side-favorite-count">0</span></button>

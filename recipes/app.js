@@ -14,7 +14,7 @@ const state = {
   favorites:new Set(Array.isArray(savedFavorites) ? savedFavorites.filter((id) => RECIPES.some((r) => r.id === id)) : []),
   recent:Array.isArray(savedRecent) ? savedRecent.filter((id) => RECIPES.some((r) => r.id === id)).slice(0,4) : [],
   font:Math.max(18, Math.min(28, Number(readStored('pwg-font-v1',20)) || 20)),
-  theme:readStored('pwg-theme-v1','dark') === 'light' ? 'light' : 'dark'
+  theme:readStored('pwg-theme-v1','light') === 'dark' ? 'dark' : 'light'
 };
 let timerInterval = null, toastTimeout = null, wakeLock = null, wakeRequested = false;
 let lastRecipeTrigger = null;
