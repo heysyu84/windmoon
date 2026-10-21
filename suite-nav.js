@@ -1,4 +1,13 @@
 const root = new URL('./', import.meta.url);
+const faviconHref = new URL('favicon.svg?v=20261022-wave', root).href;
+let faviconLink = document.querySelector('link[rel~="icon"]');
+if (!faviconLink) {
+  faviconLink = document.createElement('link');
+  faviconLink.rel = 'icon';
+  document.head.append(faviconLink);
+}
+faviconLink.type = 'image/svg+xml';
+faviconLink.href = faviconHref;
 const page = document.body.dataset.suitePage;
 const paths = {
   home:'<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3Z"/>',
