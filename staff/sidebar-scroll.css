@@ -2,11 +2,12 @@
    Matches the home and operations navigation, including scrollbars. */
 @font-face{
   font-family:WMNavPretendard;
-  src:url('../operations/assets/PretendardVariable.woff2') format('woff2');
+  src:url('../fonts/Pretendard-Regular.ttf') format('truetype');
   font-style:normal;
-  font-weight:100 900;
+  font-weight:400;
   font-display:swap;
 }
+@font-face{font-family:WMNavPretendard;src:url('../fonts/Pretendard-SemiBold.ttf') format('truetype');font-weight:600 800;font-display:swap}
 html{scrollbar-gutter:stable}
 @media(min-width:641px){
   .app-shell>.sidebar{
@@ -30,7 +31,10 @@ html{scrollbar-gutter:stable}
     margin:0;
     padding:0 1px 32px;
     gap:14px;
+    align-items:center;
   }
+  .app-shell>.sidebar>.brand>.brand-logo{display:block;box-sizing:border-box;width:100%;max-width:200px;min-width:0;margin:0 auto;flex-shrink:0}
+  .app-shell>.sidebar>.brand>.brand-logo img{display:block;width:100%;max-width:100%;height:auto;max-height:none;object-fit:contain}
   .app-shell>.sidebar>.nav-label{
     box-sizing:border-box;
     width:100%;
@@ -78,8 +82,16 @@ html{scrollbar-gutter:stable}
   .app-shell>.sidebar{width:74px;padding:25px 10px}
   .app-shell>.main-area{margin-left:74px}
   .app-shell>.sidebar>.brand{padding:0 1px 30px;gap:0}
+  .app-shell>.sidebar>.brand>.brand-logo{width:52px}
   .app-shell>.sidebar .nav-item{justify-content:center;min-height:48px;padding:15px 5px;gap:0}
 }
 @media(max-width:640px){
   .app-shell>.sidebar{scrollbar-gutter:auto;overflow:visible}
 }
+
+/* Match the public home breadcrumb exactly (including mobile). */
+.app-shell .topbar .breadcrumb{display:flex;align-items:center;gap:16px;font:400 12px/1.6 WMNavPretendard,Pretendard,sans-serif;letter-spacing:0;color:#77867d}
+.app-shell .topbar .breadcrumb>a{color:#77867d;font-size:10px;letter-spacing:1.4px;font-weight:400}
+.app-shell .topbar .breadcrumb>span{color:#ccd3ce;font-size:12px}
+.app-shell .topbar .breadcrumb>strong{color:#51645a;font-size:13px;font-weight:500;letter-spacing:0}
+@media(max-width:640px){.app-shell .topbar .breadcrumb{gap:12px;font-size:12px;min-width:0;white-space:nowrap}.app-shell .topbar .breadcrumb::before{content:none;display:none}.app-shell .topbar .breadcrumb>a{font-size:9px}.app-shell .topbar .breadcrumb>span{font-size:12px}.app-shell .topbar .breadcrumb>strong{font-size:13px}}
