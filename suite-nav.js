@@ -9,6 +9,11 @@ if (!faviconLink) {
 faviconLink.type = 'image/svg+xml';
 faviconLink.href = faviconHref;
 const page = document.body.dataset.suitePage;
+// The staff/operations API is authenticated on the existing GitHub origin.
+// Keep both admin apps there until a same-origin Cloudflare backend is deployed.
+const isPagesHost = location.hostname.endsWith('.pages.dev');
+const suiteModuleHref = id => id === 'home' ? root.href : isPagesHost && (id === 'staff' || id === 'operations')
+  ? `https://heysyu84.github.io/windmoon/${id}/` : new URL(`${id}/`,root).href;
 const paths = {
   home:'<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3Z"/>',
   staff:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-17a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5v2"/>',
@@ -22,7 +27,7 @@ const modules = [['home','홈'],['staff','직원관리'],['operations','운영�
 const nav = document.createElement('aside');
 nav.className='wm-suite-sidebar';
 nav.setAttribute('aria-label','풍월 업무공간');
-nav.innerHTML = `<a class="wm-suite-brand" href="${root}" aria-label="WIND MOON 홈"><picture><source media="(max-width:900px)" srcset="${new URL('brand/mark.svg',root)}"><img src="${new URL('brand/wordmark.png',root)}" alt="WIND MOON 풍월 · LOUNGE & CLUB" width="1774" height="887"></picture><span>통합 업무공간</span></a><span class="wm-nav-label">WORKSPACE</span><nav class="wm-suite-links" aria-label="프로그램">${modules.map(([id,label],i)=>`${i===3?'<span class="wm-nav-label wm-tools-label">STUDIO & TOOLS</span>':''}<a class="wm-suite-link${page===id?' is-active':''}" href="${id==='home'?root:new URL(id+'/',root)}" target="_top" data-wm-module="${id}" title="${label}"${page===id?' aria-current="page"':''}>${icon(id)}<span>${label}</span><i></i></a>`).join('')}</nav><a class="wm-suite-account" href="${root}" aria-label="풍월 업무공간 홈"><span class="wm-avatar">WM</span><span>풍월<small>LOUNGE & CLUB</small></span>${icon('home')}</a>`;
+nav.innerHTML = `<a class="wm-suite-brand" href="${root}" aria-label="WIND MOON 홈"><picture><source media="(max-width:900px)" srcset="${new URL('brand/mark.svg',root)}"><img src="${new URL('brand/wordmark.png',root)}" alt="WIND MOON 풍월 · LOUNGE & CLUB" width="1774" height="887"></picture><span>통합 업무공간</span></a><span class="wm-nav-label">WORKSPACE</span><nav class="wm-suite-links" aria-label="프로그램">${modules.map(([id,label],i)=>`${i===3?'<span class="wm-nav-label wm-tools-label">STUDIO & TOOLS</span>':''}<a class="wm-suite-link${page===id?' is-active':''}" href="${suiteModuleHref(id)}" target="_top" data-wm-module="${id}" title="${label}"${page===id?' aria-current="page"':''}>${icon(id)}<span>${label}</span><i></i></a>`).join('')}</nav><a class="wm-suite-account" href="${root}" aria-label="풍월 업무공간 홈"><span class="wm-avatar">WM</span><span>풍월<small>LOUNGE & CLUB</small></span>${icon('home')}</a>`;
 document.body.prepend(nav);
 for(const anchor of document.querySelectorAll('[data-wm-home]')) {
   anchor.href=root; anchor.innerHTML=`${icon('home')}<span>홈으로</span>`;
