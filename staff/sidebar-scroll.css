@@ -1,0 +1,7 @@
+/* WIND MOON shared sidebar geometry: reserve scrollbar width even without overflow. */
+html{scrollbar-gutter:stable}
+@media(min-width:641px){
+  .sidebar{box-sizing:border-box;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-gutter:stable}
+  .sidebar>.brand,.sidebar>nav,.sidebar>.sidebar-bottom{flex-shrink:0}
+}
+@media(max-width:640px){.sidebar{scrollbar-gutter:auto;overflow:visible}}
