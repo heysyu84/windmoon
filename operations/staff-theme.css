@@ -1,14 +1,16 @@
 /* Shared WIND MOON staff interface: palette, navigation, sizes and breakpoints. */
 .suite-menu{position:relative;flex:none}.suite-menu>summary{display:flex;align-items:center;justify-content:center;gap:6px;list-style:none;border:1px solid #dce3dc;border-radius:7px;padding:7px 9px;font-size:12px;color:#63755f;cursor:pointer;background:#fff;white-space:nowrap}.suite-menu>summary::-webkit-details-marker{display:none}.suite-grid{font-size:19px;line-height:1}.suite-menu>nav{position:absolute;right:0;top:calc(100% + 8px);width:210px;background:#fff;border:1px solid #dce3dc;border-radius:10px;box-shadow:0 8px 30px #172b2720;padding:6px;z-index:90}.suite-menu>nav>a{display:block;padding:11px 13px;border-radius:6px;color:#425646;font-size:13px}.suite-menu>nav>a:hover{background:#f0f4ef}
+html{scrollbar-gutter:stable}
 :root{--bg:#f5f6f4;--ink:#202b2a;--muted:#85908e;--line:#e5e9e6;--green:#223e37;--nav:#172b27;--warm:#c8ae7b;--gold:#c8ae7b;--red:#b34435;--radius:10px;font-synthesis:none}
 body{font-size:16px;-webkit-font-smoothing:antialiased}
-.sidebar{display:flex;width:228px;padding:37px 18px 20px;background:var(--nav);color:#c3ceca;overflow-y:auto;scrollbar-width:thin}
+.sidebar{display:flex;width:228px;padding:37px 18px 20px;background:var(--nav);color:#c3ceca;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-gutter:stable}
 .brand{display:flex;flex-direction:column;gap:14px;align-items:center;padding:0 1px 32px}
 .brand-logo{display:block;width:100%;filter:brightness(0) saturate(100%) invert(78%) sepia(24%) saturate(506%) hue-rotate(1deg) brightness(94%) contrast(88%)}
 .brand .brand-logo img{display:block;width:100%;height:auto;max-height:none;filter:none;opacity:1;object-fit:contain}
 .brand>.brand-caption{display:block;font-size:13px;letter-spacing:1.3px;color:#97aaa3;margin:0}
 .nav-caption{font-size:11px;letter-spacing:1.8px;color:#779086;margin:0;padding:0 17px 18px}
-.sidebar nav{width:100%}
+.sidebar nav{width:100%;flex-shrink:0}
+.sidebar>.brand,.sidebar>.sidebar-bottom{flex-shrink:0}
 .nav-item{display:flex;align-items:center;gap:13px;width:100%;border:0;border-radius:8px;padding:13px 16px;margin:0 0 5px;text-align:left;font-size:15px;font-weight:400;letter-spacing:.1px;background:transparent;color:inherit;line-height:1.5;white-space:nowrap}
 .nav-item svg{width:19px;height:19px;stroke-width:1.55}
 .nav-item:hover:not(.active){background:#ffffff08;color:#fff}
