@@ -1,7 +1,7 @@
 export const STORAGE_KEY = 'windmoon-operations-demo-v1';
 export const STAFF_URL = 'https://heysyu84.github.io/windmoon/staff/';
 export const ACCOUNTS = [{id:'cash',name:'현금 시재',short:'현금',icon:'wallet'},{id:'bank',name:'운영계좌',short:'계좌',icon:'bank'}];
-export const CATEGORIES = {sale:['보틀·세트','칵테일·샷','입장료','기타 매출'],expense:['주류 매입','임대료','공과금','소모품','광고·홍보','식비·복리후생','기타 지출'],funding:['대표자 입금','차입금','기타 입금'],refund:['매출 환불'],transfer:['자금 이동']};
+export const CATEGORIES = {sale:['보틀·세트','칵테일·샷','입장료','인포 매출','기타 매출'],expense:['주류 매입','임대료','공과금','소모품','광고·홍보','식비·복리후생','기타 지출'],funding:['대표자 입금','차입금','기타 입금'],refund:['매출 환불'],transfer:['자금 이동']};
 export const TYPE_NAMES = {sale:'매출',expense:'지출',funding:'기타 입금',transfer:'자금 이동',refund:'매출 환불'};
 export function localDate(now=new Date()){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);}
 export function shiftDate(date,delta){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+delta);return d.toISOString().slice(0,10);}
@@ -166,10 +166,13 @@ export function saveDayClosing(state,date,input){
   const record={id,type:'sale',title:({card:'카드',cash:'현금',bank:'이체'}[method])+' 매출 · 일마감',businessDate:date,category:'일마감 매출',method,partner:'일마감',note:'영업일 합계 중 개별 매출을 제외한 금액',amount,payments,closingDate:date};
   validateEntry(record);if(index<0)entries.push(record);else entries[index]=record;
  }
+ const info=Number(input.info??0),gross=Number(input.card)+Number(input.cash)+Number(input.bank);
+ if(!Number.isSafeInteger(info)||info<0||info>99999999999)throw Error('인포 매출은 0원 이상의 정수로 입력해 주세요.');
+ if(info>gross)throw Error('인포 매출은 카드·현금·계좌이체 매출 합계보다 클 수 없습니다.');
  const actualCash=input.actualCash===''||input.actualCash==null?null:Number(input.actualCash);
  if(actualCash!==null&&(!Number.isSafeInteger(actualCash)||actualCash<0))throw Error('실제 현금은 0원 이상의 정수로 입력해 주세요.');
  const next={...state,entries,closings:{...(state.closings||{})}},sum=summarize(next,{start:date,end:date});
- next.closings[date]={date,status:input.status==='draft'?'draft':'closed',card:Number(input.card),cash:Number(input.cash),bank:Number(input.bank),actualCash,expectedCash:sum.balances.cash,difference:actualCash===null?null:sum.balances.cash==null?null:actualCash-sum.balances.cash,note:String(input.note||'').slice(0,500),savedAt:now,closedAt:input.status==='draft'?null:now};
+ next.closings[date]={date,status:input.status==='draft'?'draft':'closed',card:Number(input.card),cash:Number(input.cash),bank:Number(input.bank),info,actualCash,expectedCash:sum.balances.cash,difference:actualCash===null?null:sum.balances.cash==null?null:actualCash-sum.balances.cash,note:String(input.note||'').slice(0,500),savedAt:now,closedAt:input.status==='draft'?null:now};
  return next;
 }
 export function validateWorkspace(input,previous=null){
@@ -189,6 +192,7 @@ export function validateWorkspace(input,previous=null){
  if(typeof closings!=='object'||Array.isArray(closings)||Object.keys(closings).length>10000)throw Error('마감 형식을 확인해 주세요.');
  for(const [date,c] of Object.entries(closings)){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||c.date!==date||!['draft','closed'].includes(c.status)||['card','cash','bank'].some(k=>!Number.isSafeInteger(c[k])||c[k]<0)||typeof c.note!=='string'||c.note.length>500)throw Error('마감 내용을 확인해 주세요.');
+  if(c.info!==undefined&&(!Number.isSafeInteger(c.info)||c.info<0||c.info>c.card+c.cash+c.bank))throw Error('인포 매출 금액을 확인해 주세요.');
  }
  if(previous){
   for(const e of previous.entries){
