@@ -112,7 +112,7 @@ function openSettings(){
 }
 async function submitClosing(status='closed'){
  const f=$('#closing-form');if(!f)return;
- try{const next=saveDayClosing(state,ui.day,{card:f.elements.card.value,cash:f.elements.cash.value,bank:f.elements.bank.value,actualCash:f.elements.actualCash.value,note:f.elements.note.value,status});if(await persist(next,ui.day+' 일마감 '+(status==='closed'?'완료':'임시 저장')))toast(status==='closed'?'일마감을 완료했습니다.':'마감을 임시 저장했습니다.');}
+ try{const next=saveDayClosing(state,ui.day,{card:f.elements.card.value,cash:f.elements.cash.value,bank:f.elements.bank.value,info:f.elements.info.value,actualCash:f.elements.actualCash.value,note:f.elements.note.value,status});if(await persist(next,ui.day+' 일마감 '+(status==='closed'?'완료':'임시 저장')))toast(status==='closed'?'일마감을 완료했습니다.':'마감을 임시 저장했습니다.');}
  catch(error){$('#closing-error').textContent=error.message;}
 }
 $('#entry-form').addEventListener('submit',submitEntry);
@@ -162,8 +162,9 @@ document.addEventListener('submit',event=>{if(event.target.id==='closing-form'){
 document.addEventListener('input',event=>{
  if(!event.target.closest('#closing-form'))return;const f=$('#closing-form'),sales=dailySales(state,ui.day),summary=state.entries.filter(e=>e.type==='refund'&&e.businessDate===ui.day).reduce((n,e)=>n+e.amount,0);
  const values=['card','cash','bank'].map(k=>Number(f.elements[k].value)||0);$('#closing-total').textContent=money(values.reduce((a,b)=>a+b,0)-summary)+'원';
+ $('#closing-info').textContent=money(Number(f.elements.info.value)||0)+'원';
  const currentCash=state.closings?.[ui.day]?.expectedCash;
- let expectedCash;try{const next=saveDayClosing(state,ui.day,{card:values[0],cash:values[1],bank:values[2],actualCash:'',note:'',status:'draft'});expectedCash=next.closings[ui.day].expectedCash;}catch{expectedCash=currentCash;}
+ let expectedCash;try{const next=saveDayClosing(state,ui.day,{card:values[0],cash:values[1],bank:values[2],info:f.elements.info.value,actualCash:'',note:'',status:'draft'});expectedCash=next.closings[ui.day].expectedCash;}catch{expectedCash=currentCash;}
  $('#closing-expected').textContent=money(expectedCash)+'원';$('#closing-difference').textContent=f.elements.actualCash.value===''||expectedCash==null?'미입력':money(Number(f.elements.actualCash.value)-expectedCash)+'원';
 });
 
