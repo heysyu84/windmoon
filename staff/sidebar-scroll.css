@@ -95,3 +95,11 @@ html{scrollbar-gutter:stable}
 .app-shell .topbar .breadcrumb>span{color:#ccd3ce;font-size:12px}
 .app-shell .topbar .breadcrumb>strong{color:#51645a;font-size:13px;font-weight:500;letter-spacing:0}
 @media(max-width:640px){.app-shell .topbar .breadcrumb{gap:12px;font-size:12px;min-width:0;white-space:nowrap}.app-shell .topbar .breadcrumb::before{content:none;display:none}.app-shell .topbar .breadcrumb>a{font-size:9px}.app-shell .topbar .breadcrumb>span{font-size:12px}.app-shell .topbar .breadcrumb>strong{font-size:13px}}
+
+/* Salary account columns: only authenticated private profile responses populate these cells. */
+.staff-bank-name{min-width:105px;white-space:nowrap}
+.staff-account-number{min-width:174px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.staff-account-control{display:inline-flex;align-items:center;gap:7px}
+.staff-account-control>span{font-size:13px;letter-spacing:.2px}
+.staff-account-control>.mini-btn{font-size:11px;padding:5px 8px;min-height:28px}
+@media(max-width:640px){.staff-bank-name{min-width:90px}.staff-account-number{min-width:155px}}
