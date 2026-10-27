@@ -8,6 +8,17 @@ if (!faviconLink) {
 }
 faviconLink.type = 'image/svg+xml';
 faviconLink.href = faviconHref;
+
+// iOS Home Screen uses a PNG touch icon independently of the tab favicon.
+let touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+if (!touchIcon) {
+  touchIcon = document.createElement('link');
+  touchIcon.rel = 'apple-touch-icon';
+  document.head.append(touchIcon);
+}
+touchIcon.sizes = '180x180';
+touchIcon.href = new URL('apple-touch-icon.png?v=20261028', root).href;
+
 const page = document.body.dataset.suitePage;
 // The staff/operations API is authenticated on the existing GitHub origin.
 // Keep both admin apps there until a same-origin Cloudflare backend is deployed.
