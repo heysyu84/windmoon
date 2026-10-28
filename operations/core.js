@@ -1,5 +1,5 @@
 export const STORAGE_KEY = 'windmoon-operations-demo-v1';
-export const STAFF_URL = 'https://heysyu84.github.io/windmoon/staff/';
+export const STAFF_URL = new URL('../staff/', import.meta.url).href;
 export const ACCOUNTS = [{id:'cash',name:'현금 시재',short:'현금',icon:'wallet'},{id:'bank',name:'운영계좌',short:'계좌',icon:'bank'}];
 export const CATEGORIES = {sale:['보틀·세트','칵테일·샷','입장료','인포 매출','기타 매출'],expense:['주류 매입','임대료','공과금','소모품','광고·홍보','식비·복리후생','기타 지출'],funding:['대표자 입금','차입금','기타 입금'],refund:['매출 환불'],transfer:['자금 이동']};
 export const TYPE_NAMES = {sale:'매출',expense:'지출',funding:'기타 입금',transfer:'자금 이동',refund:'매출 환불'};
@@ -212,3 +212,4 @@ export function validateWorkspace(input,previous=null){
  if(vendors.length>100||vendors.some(v=>typeof v!=='string'||!v.trim()||v.trim().length>60))throw Error('고정 거래처는 이름당 60자 이내, 최대 100개까지 등록할 수 있습니다.');
  return {version:1,demoDate:typeof clone.demoDate==='string'?clone.demoDate:localDate(),openingDate:clone.openingDate||'1900-01-01',openingBalances:{cash:clone.openingBalances.cash,bank:clone.openingBalances.bank},entries:clone.entries,payroll:[],closings,customCategories:[...new Set(categories.map(c=>c.trim()).filter(Boolean))],vendors:[...new Set(vendors.map(v=>v.trim()))],staffUrl:STAFF_URL};
 }
+

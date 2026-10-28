@@ -1,1 +1,1 @@
-(()=>{if(!location.hostname.endsWith('.pages.dev'))return;const url=new URL('https://heysyu84.github.io/windmoon/staff/');url.search=location.search;url.hash=location.hash;location.replace(url.href);})();
+// Legacy filename retained for previously opened tabs. Navigation stays on the current host.

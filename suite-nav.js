@@ -20,11 +20,7 @@ touchIcon.sizes = '180x180';
 touchIcon.href = new URL('apple-touch-icon.png?v=20261028', root).href;
 
 const page = document.body.dataset.suitePage;
-// The staff/operations API is authenticated on the existing GitHub origin.
-// Keep both admin apps there until a same-origin Cloudflare backend is deployed.
-const isPagesHost = location.hostname.endsWith('.pages.dev');
-const suiteModuleHref = id => id === 'home' ? root.href : isPagesHost && (id === 'staff' || id === 'operations')
-  ? `https://heysyu84.github.io/windmoon/${id}/` : new URL(`${id}/`,root).href;
+const suiteModuleHref = id => id === 'home' ? root.href : new URL(`${id}/`, root).href;
 const paths = {
   home:'<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3Z"/>',
   staff:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-17a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5v2"/>',
@@ -47,3 +43,4 @@ document.addEventListener('click',event=>{
   const link=event.target.closest('[data-wm-module]');
   if(link && link.dataset.wmModule!=='home')try{localStorage.setItem('windmoon-suite-last-module',link.dataset.wmModule);}catch{}
 });
+
