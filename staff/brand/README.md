@@ -1,15 +1,17 @@
 # WINDMOON Workspace
 
-- `workspace-menu-a-joined.svg`: selected A lockup, warm ivory for the dark navigation.
-- `workspace-report-a-joined.svg` / `.png`: matching vertical A lockup for PDF and print headers.
+- `workspace-menu-a-regular400.svg`: selected A lockup, warm ivory for the dark navigation.
+- `workspace-report-a-regular400.svg` / `.png`: matching vertical A lockup for PDF and print headers.
 - `workspace-mark.svg`: original wave, warm ivory, for the narrow navigation.
 
 The new lockups reuse the exact path from `mark.svg`, with outlined Pretendard
-SemiBold lettering (license in `../fonts/OFL.txt`). They load no external fonts.
+Regular 400 lettering (license in `../fonts/OFL.txt`), without an added outline
+stroke. Both WINDMOON and WORKSPACE use the installed Regular font's glyphs.
+They load no external fonts.
 Original brand files remain available to the separate menu and card editors.
-The joined wordmark removes only the space in WINDMOON. Letter scaling,
-weight, colors and all other shapes match the previously published menu A logo.
-PDF and print now use the same vertical A composition in dark green.
+The WINDMOON name has no space. Letter layout, target sizes, wave and colors
+retain the previously published vertical A composition; only lettering weight
+changes. PDF and print use the matching dark-green lockup.
 The older filenames remain available for already-open tabs.
 
 To maintain the SVGs, run `python scripts/build-workspace-brand.py` with fontTools.
