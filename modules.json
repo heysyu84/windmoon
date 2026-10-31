@@ -43,5 +43,14 @@
     "group": "매장 도구",
     "icon": "glass",
     "href": "recipes/"
+  },
+  {
+    "id": "gagebu",
+    "name": "개인 가계부",
+    "english": "GAGEBU",
+    "description": "편의점 장부와 개인 지출을 분리하여 기록·분석합니다. 기록은 현재 브라우저에만 저장됩니다.",
+    "group": "개인 도구",
+    "icon": "wallet",
+    "href": "gagebu/"
   }
 ]
