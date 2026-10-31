@@ -4,7 +4,7 @@ const icon=(name,size=22)=>`<svg viewBox="0 0 24 24" width="${size}" height="${s
 const container=document.querySelector('#modules');let modules=[];
 const appHref = m => m.href;
 document.querySelector('#today').textContent=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'short'}).format(new Date());
-const labels={staff:'근무 · 직원 정보 · 급여 정산',operations:'일마감 · 매출 · 지출',menu:'A3 메뉴판 편집',cards:'명함 디자인 · 내보내기',recipes:'제조법 · 재료 · 즐겨찾기',gagebu:'가게부 · 소비지출 · 월별 수지'};
+const labels={staff:'근무 · 직원 정보 · 급여 정산',operations:'일마감 · 매출 · 지출',menu:'A3 메뉴판 편집',cards:'명함 디자인 · 내보내기',recipes:'제조법 · 재료 · 즐겨찾기'};
 function render(query=''){
  const matching=modules.filter(m=>[m.name,m.english,m.description,m.group].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
  const arrow='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
