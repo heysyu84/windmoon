@@ -1,5 +1,5 @@
-import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261029-domain';
-import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261029-domain';
+import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261102-info-terminal';
+import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-info-terminal';
 import {markedDates,datePickerHtml} from './calendar.js?v=20261101-record-days';
 const $=s=>document.querySelector(s),today=localDate();
 let state=makeEmpty(today),demoState=makeDemo(today),serverState=makeEmpty(today),mode='real',revision=0,serverReady=false,saving=false,loading=false,pendingSave=null,payrollData=null;
@@ -189,7 +189,7 @@ window.addEventListener('storage',event=>{if(event.key===STORAGE_KEY)toast('다�
 document.addEventListener('submit',event=>{if(event.target.id==='closing-form'){event.preventDefault();submitClosing('closed');}});
 document.addEventListener('input',event=>{
  if(!event.target.closest('#closing-form'))return;const f=$('#closing-form'),sales=dailySales(state,ui.day),summary=state.entries.filter(e=>e.type==='refund'&&e.businessDate===ui.day).reduce((n,e)=>n+e.amount,0);
- const values=['card','cash','bank'].map(k=>Number(f.elements[k].value)||0);$('#closing-total').textContent=money(values.reduce((a,b)=>a+b,0)-summary)+'원';
+ const values=['card','cash','bank'].map(k=>Number(f.elements[k].value)||0);$('#closing-total').textContent=money(values.reduce((a,b)=>a+b,0)+(Number(f.elements.info.value)||0)-summary)+'원';
  $('#closing-info').textContent=money(Number(f.elements.info.value)||0)+'원';
  const currentCash=state.closings?.[ui.day]?.expectedCash;
  let expectedCash;try{const next=saveDayClosing(state,ui.day,{card:values[0],cash:values[1],bank:values[2],info:f.elements.info.value,actualCash:'',note:'',status:'draft'});expectedCash=next.closings[ui.day].expectedCash;}catch{expectedCash=currentCash;}
