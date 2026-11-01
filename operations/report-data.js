@@ -1,4 +1,4 @@
-import {summarize,inRange,infoSaleId,isInfoTerminalSale,groupPayrollPeriod,paidAmount,outstanding} from './core.js?v=20261102-report';
+import {summarize,inRange,infoSaleId,isInfoTerminalSale,groupPayrollPeriod,paidAmount,outstanding} from './core.js?v=20261102-operating-report';
 
 export const REPORT_BASIS='매출·지출·급여는 영업일 기준, 카드 수수료는 정산일 기준입니다. 기타 입금과 자금 이동은 제외합니다.';
 export const reportPeriod=range=>range.start===range.end?range.start:range.start+' ~ '+range.end;

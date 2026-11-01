@@ -1,4 +1,4 @@
-import {ACCOUNTS,TYPE_NAMES,paidAmount,outstanding,payrollBalance,paymentStatus,summarize,costGroups,cashEvents,inRange,shiftDate,localDate,dailySales,dayClosed,isInfoTerminalSale,infoSaleAmount,groupPayrollPeriod,comparePayrollStaff,pendingPayroll} from './core.js?v=20261102-daily-sales';
+import {ACCOUNTS,TYPE_NAMES,paidAmount,outstanding,payrollBalance,paymentStatus,summarize,costGroups,cashEvents,inRange,shiftDate,localDate,dailySales,dayClosed,isInfoTerminalSale,infoSaleAmount,groupPayrollPeriod,comparePayrollStaff,pendingPayroll} from './core.js?v=20261102-operating-report';
 export const money=n=>n==null?'—':new Intl.NumberFormat('ko-KR').format(n);
 export const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const shortDate=d=>d?.replaceAll('-','.')||'—';
@@ -105,3 +105,5 @@ export function renderClosing(state,date){
  <div class="two-col" style="margin-top:18px"><article class="panel"><div class="panel-head"><h2>당일 지출 · 인건비 확인</h2>${closed?'':'<button class="text-btn" data-new="expense">지출 추가 +</button>'}</div><div class="report-lines">${expenses.slice(0,6).map(e=>`<button type="button" class="report-line text-btn" style="width:100%" data-entry="${escape(e.id)}"><span>${escape(e.title)}</span><strong>${money(e.amount)}원</strong></button>`).join('')||'<div class="empty-note">등록된 일반 지출이 없습니다.</div>'}<div class="report-line"><span>직원관리 근무 ${payroll.length}건</span><strong>${money(s.payrollAccrued)}원</strong></div><div class="report-line total"><span>급여 포함 당일 비용</span><strong>${money(s.totalCosts)}원</strong></div></div></article><article class="panel"><div class="panel-head"><h2>최근 일마감</h2><span class="panel-sub">최근 8건</span></div><div class="report-lines">${history.map(c=>`<button class="report-line text-btn" type="button" style="width:100%" data-closing-date="${c.date}"><span>${shortDate(c.date)} · ${c.status==='closed'?'완료':'임시 저장'}</span><strong>${money(c.card+c.cash+c.bank+infoSaleAmount(state,c.date))}원</strong></button>`).join('')||'<div class="empty-note">저장된 일마감이 없습니다.</div>'}</div></article></div>`;
 }
 
+
+NAV.splice(2,0,{id:'report',name:'운영보고서',mobile:'보고서',icon:'receipt',eyebrow:'OPERATIONS REPORT',description:'매출·지출·직원 급여를 한 장으로 정리합니다.'});

@@ -3,9 +3,9 @@
 <head>
  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
  <meta name="theme-color" content="#172b27"><meta name="description" content="풍월의 매출·지출·인건비와 자금 흐름을 한눈에 확인하는 운영관리.">
- <title>WIND MOON · 운영관리</title><link rel="icon" href="./assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=20261102-funds-accrual"><link rel="stylesheet" href="./staff-theme.css?v=20261029-workspace"><link rel="stylesheet" href="./calendar.css?v=20261102-closing-status">
+ <title>WIND MOON · 운영관리</title><link rel="icon" href="./assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=20261102-operating-report-union"><link rel="stylesheet" href="./staff-theme.css?v=20261029-workspace"><link rel="stylesheet" href="./calendar.css?v=20261102-closing-status">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png?v=20261028">
-<link rel="stylesheet" href="./report.css?v=20261102-report">
+<link rel="stylesheet" href="./report.css?v=20261102-operating-report">
 </head>
 <body>
  <aside class="sidebar" aria-label="주 메뉴">
@@ -31,6 +31,6 @@
   <dialog id="report-export" aria-labelledby="report-export-title"><div class="dialog-heading"><div><p class="eyebrow">OPERATIONS REPORT</p><h2 id="report-export-title">운영보고서 내보내기</h2></div><button type="button" class="icon-btn" data-close="report-export" aria-label="닫기">×</button></div><div class="dialog-body"><p id="report-export-period" class="report-export-period"></p><label class="report-export-check"><input id="report-export-daily" type="checkbox">PDF에 일자별 내역 포함</label><div class="report-export-help">PDF는 A4 한 장 요약으로 저장합니다. 일자별 내역을 포함하면 상세 페이지가 추가됩니다.<br>엑셀에는 기간 요약·일자별·매출내역·지출내역·직원급여 시트가 포함됩니다.</div><div id="report-export-warning" class="report-export-warning"></div><div id="report-export-error" class="form-error" role="alert"></div></div><div class="dialog-footer report-export-actions"><button type="button" class="secondary-btn" data-close="report-export">취소</button><button type="button" class="secondary-btn" data-report-format="xlsx">엑셀 저장</button><button type="button" class="primary-btn" data-report-format="pdf">PDF 저장</button></div></dialog>
   <dialog id="report-day" aria-labelledby="report-day-title"><div class="dialog-heading"><div><p class="eyebrow">DAILY REPORT</p><h2 id="report-day-title">일자별 내역</h2></div><button type="button" class="icon-btn" data-close="report-day" aria-label="닫기">×</button></div><div id="report-day-body" class="dialog-body report-day-dialog"></div><div class="dialog-footer"><button type="button" class="secondary-btn" data-close="report-day">닫기</button></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
- <noscript><p class="noscript">이 프로그램을 사용하려면 JavaScript를 켜 주세요.</p></noscript><script type="module" src="./app.js?v=20261102-funds-accrual"></script>
+ <noscript><p class="noscript">이 프로그램을 사용하려면 JavaScript를 켜 주세요.</p></noscript><script type="module" src="./app.js?v=20261102-operating-report"></script>
 </body></html>
 
