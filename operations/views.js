@@ -1,4 +1,4 @@
-import {ACCOUNTS,TYPE_NAMES,paidAmount,outstanding,payrollBalance,paymentStatus,summarize,costGroups,cashEvents,inRange,shiftDate,localDate,dailySales,dayClosed,isInfoTerminalSale,infoSaleAmount,groupPayrollPeriod,comparePayrollStaff,pendingPayroll} from './core.js?v=20261102-info-terminal';
+import {ACCOUNTS,TYPE_NAMES,paidAmount,outstanding,payrollBalance,paymentStatus,summarize,costGroups,cashEvents,inRange,shiftDate,localDate,dailySales,dayClosed,isInfoTerminalSale,infoSaleAmount,groupPayrollPeriod,comparePayrollStaff,pendingPayroll} from './core.js?v=20261102-daily-sales';
 export const money=n=>n==null?'—':new Intl.NumberFormat('ko-KR').format(n);
 export const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const shortDate=d=>d?.replaceAll('-','.')||'—';
