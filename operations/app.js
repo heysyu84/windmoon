@@ -1,6 +1,6 @@
 import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261102-info-terminal';
 import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-info-terminal';
-import {markedDates,datePickerHtml} from './calendar.js?v=20261101-record-days';
+import {markedDates,datePickerHtml} from './calendar.js?v=20261102-closing-status';
 const $=s=>document.querySelector(s),today=localDate();
 let state=makeEmpty(today),demoState=makeDemo(today),serverState=makeEmpty(today),mode='real',revision=0,serverReady=false,saving=false,loading=false,pendingSave=null,payrollData=null;
 let loadMessage='';
