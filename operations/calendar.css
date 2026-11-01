@@ -1,0 +1,38 @@
+/* Operations record calendar: matching the staff calendar's saved-day indicator. */
+.period-bar,.period-inputs{overflow:visible}
+.operations-date-picker{position:relative;display:inline-flex;align-items:center;min-width:0}
+.operations-date-trigger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:137px;height:33px;padding:5px 10px;border:1px solid #dce5db;border-radius:7px;background:#fff;color:#47614c;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.operations-date-trigger:hover,.operations-date-trigger[aria-expanded="true"]{background:#f0f5ee;border-color:#b4c8b2}
+.operations-date-trigger .picker-caret{margin-left:auto;color:#94a496;font-size:15px}
+.operations-date-trigger time{font-variant-numeric:tabular-nums}
+.operations-date-trigger:focus-visible,.operations-calendar-popover button:focus-visible,.operations-calendar-popover select:focus-visible{outline:2px solid #5f9b77;outline-offset:2px}
+.operations-period-divider{color:#9fac9c;font-size:13px}
+.operations-calendar-popover{position:absolute;top:calc(100% + 8px);left:0;z-index:600;width:318px;max-width:calc(100vw - 24px);padding:13px;border:1px solid #dbe6da;border-radius:12px;background:#fff;box-shadow:0 12px 34px #18362422;color:#415b45}
+.operations-date-picker[data-picker-field="end"] .operations-calendar-popover{left:auto;right:0}
+.operations-calendar-heading{display:flex;align-items:center;justify-content:space-between;padding:0 3px 8px;font-size:12px}
+.operations-calendar-heading strong{font-weight:650}
+.operations-calendar-x{border:0;background:transparent;color:#80948a;font-size:21px;line-height:1;padding:0 5px}
+.operations-calendar-monthbar{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:9px}
+.operations-calendar-monthbar>button{border:0;border-radius:6px;background:#f4f7f3;color:#4c7055;width:30px;height:30px;font-size:19px;flex:0 0 auto}
+.operations-calendar-selects{display:flex;justify-content:center;gap:5px;min-width:0}
+.operations-calendar-selects select{height:30px;padding:3px 5px;border:1px solid #e0e8df;border-radius:6px;background:white;color:#46604c;font-size:12px}
+.operations-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.operations-calendar-weekday{text-align:center;font-size:11px;font-weight:500;color:#8a9b8c;padding:5px 0}
+.operations-calendar-day{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;height:36px;padding:0 0 3px;border:1px solid transparent;border-radius:7px;background:transparent;color:#415944;font-size:12px;line-height:1.2;cursor:pointer}
+.operations-calendar-day:hover{background:#edf4ec}
+.operations-calendar-day.other-month{color:#b8c2b7}
+.operations-calendar-day.today{border-color:#b7cebb}
+.operations-calendar-day.selected{background:#416b4e;color:white;font-weight:650}
+.operations-calendar-day.selected:hover{background:#325a40}
+.operations-calendar-dot{display:block;width:5px;height:5px;background:#559d72;border-radius:50%;position:absolute;bottom:3px;left:calc(50% - 2.5px)}
+.operations-calendar-day.selected .operations-calendar-dot{background:#e9f6e8}
+.operations-calendar-legend{display:flex;align-items:center;justify-content:center;gap:7px;margin:10px 0 8px;color:#718b78;font-size:11px}
+.operations-calendar-legend i{display:inline-block;width:6px;height:6px;background:#559d72;border-radius:50%}
+.operations-calendar-apply{width:100%;margin-bottom:10px;border:1px solid #b9d0b8;border-radius:6px;padding:8px;background:#eff6ee;color:#386047;font-size:12px;font-weight:650}
+.operations-calendar-direct{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #edf0eb;padding:10px 3px 0;font-size:11px;color:#819383}
+.operations-calendar-direct input{width:146px;min-width:0;font-size:12px!important}
+@media(max-width:740px){
+ .period-inputs.custom{flex-wrap:wrap;row-gap:8px}
+ .operations-date-trigger{min-width:117px;padding:5px 8px;font-size:11px}
+ .operations-calendar-popover,.operations-date-picker[data-picker-field="end"] .operations-calendar-popover{position:fixed;left:50%;right:auto;top:clamp(65px,18vh,140px);transform:translateX(-50%);max-height:calc(100dvh - 95px);overflow-y:auto;width:min(318px,calc(100vw - 24px))}
+}
