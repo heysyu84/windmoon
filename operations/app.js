@@ -1,5 +1,6 @@
 import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261029-domain';
 import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261029-domain';
+import {markedDates,datePickerHtml} from './calendar.js?v=20261101-record-days';
 const $=s=>document.querySelector(s),today=localDate();
 let state=makeEmpty(today),demoState=makeDemo(today),serverState=makeEmpty(today),mode='real',revision=0,serverReady=false,saving=false,loading=false,pendingSave=null,payrollData=null;
 let loadMessage='';
@@ -9,6 +10,7 @@ const operatingDay=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul'
 if(mode==='demo')state={...demoState,integration:{demo:true}};
 const ui={page:NAV.some(n=>n.id===location.hash.slice(1))?location.hash.slice(1):'overview',period:'month',day:operatingDay,month:operatingDay.slice(0,7),start:shiftDate(today,-6),end:today,filters:{search:'',status:'',method:''}};
 let editorEntry=null,editorType='sale',toastTimer,confirmCallback;
+let calendarField=null,calendarMonth=ui.month;
 const uid=()=>crypto.randomUUID();
 const options=(values,selected)=>values.map(([v,l])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(l)}</option>`).join('');
 function getRange(){return ui.period==='day'?{start:ui.day,end:ui.day}:ui.period==='month'?monthRange(ui.month):{start:ui.start,end:ui.end};}
@@ -18,23 +20,41 @@ function suiteLogin(){if(suiteLoginRedirecting)return;suiteLoginRedirecting=true
 async function jsonFetch(path,options={}){const shared=['https://heysyu84.github.io','https://windmoon.pages.dev'].includes(location.origin);let token='';if(shared){try{token=sessionStorage.getItem('windmoon-admin-session-v1')||'';}catch{}if(!token){suiteLogin();throw Error('통합 관리에 로그인해 주세요.');}}const endpoint=shared?'https://windmoon-staff.heysyu457310.chatgpt.site'+path.replace('/api/operations/','/api/suite/operations/'):path;const response=await fetch(endpoint,{...options,credentials:shared?'omit':'same-origin',cache:'no-store',headers:{'X-WM-Client':shared?'staff':'operations',...(options.body?{'Content-Type':'application/json'}:{}),...options.headers,...(shared?{Authorization:'Bearer '+token}:{})}});if(shared&&response.status===401){try{sessionStorage.removeItem('windmoon-admin-session-v1');}catch{}suiteLogin();throw Error('로그인이 만료되었습니다. 다시 로그인해 주세요.');}let body;try{body=await response.json();}catch{throw Error('서버 연결을 확인해 주세요. 로그인 또는 새로고침이 필요할 수 있습니다.');}if(!response.ok)throw Object.assign(Error(body.error||'서버 요청에 실패했습니다.'),{status:response.status});return body;}
 function attachPayroll(value){return {...value,staffUrl:STAFF_URL,payroll:payrollData?.payroll||[],integration:payrollData?{demo:false,stale:!!payrollData.stale,fetchedAt:payrollData.fetchedAt,sourceUpdatedAt:payrollData.sourceUpdatedAt,revision:payrollData.revision}:{demo:false,error:true}};}
 function updateModeBanner(){const banner=$('.demo-banner');banner.classList.toggle('real-mode',mode==='real');banner.innerHTML=mode==='demo'?'<span class="demo-label"><span class="demo-dot"></span>예시 화면</span><span>예시 입력은 이 브라우저에만 저장됩니다.</span><button data-action="about">안내 ↗</button>':'<span class="demo-label"><span class="demo-dot"></span>실제 장부</span><span>서버 저장 · PC와 휴대폰에서 같은 자료를 사용합니다.</span><button data-action="about">안내 ↗</button>';$('#mode-toggle').textContent=mode==='demo'?'실제 장부로':'예시 보기';$('#refresh-server').textContent=loading?'연결 중…':'서버 새로고침 ↻';$('#save-status').textContent=mode==='demo'?'예시 화면 · 이 브라우저에 저장':serverReady?'서버 연결됨 · 장부 버전 '+revision:'서버 연결 확인 중';}
-async function refreshServer(quiet=false){if(loading||saving)return;loading=true;updateModeBanner();const results=await Promise.allSettled([jsonFetch('/api/operations/state'),jsonFetch('/api/operations/payroll?refresh=1')]);const [ledger,payroll]=results;if(payroll.status==='fulfilled')payrollData=payroll.value;else if(payrollData)payrollData={...payrollData,stale:true};if(ledger.status==='fulfilled'){revision=ledger.value.revision;serverState=ledger.value.state;serverReady=true;if(mode==='real')state=attachPayroll(serverState);}else{if(!quiet)toast(ledger.reason.message);serverReady=false;}if(payroll.status==='rejected'&&!quiet&&serverReady)toast(payroll.reason.message);loading=false;updateModeBanner();renderContent();}
+async function refreshServer(quiet=false){if(loading||saving)return;loading=true;updateModeBanner();const results=await Promise.allSettled([jsonFetch('/api/operations/state'),jsonFetch('/api/operations/payroll?refresh=1')]);const [ledger,payroll]=results;if(payroll.status==='fulfilled')payrollData=payroll.value;else if(payrollData)payrollData={...payrollData,stale:true};if(ledger.status==='fulfilled'){revision=ledger.value.revision;serverState=ledger.value.state;serverReady=true;if(mode==='real')state=attachPayroll(serverState);}else{if(!quiet)toast(ledger.reason.message);serverReady=false;}if(payroll.status==='rejected'&&!quiet&&serverReady)toast(payroll.reason.message);loading=false;updateModeBanner();renderPeriod();renderContent();}
 async function persist(next,label='장부 저장'){
  if(saving){toast('저장 중입니다. 잠시만 기다려 주세요.');return false;}
  if(mode==='real'&&!serverReady){toast('서버 연결 후 저장할 수 있습니다. 서버 새로고침을 눌러 주세요.');return false;}
  try{
   const clean=validateWorkspace(next,mode==='real'?serverState:demoState);
-  if(mode==='demo'){demoState={...clean,payroll:next.payroll||demoState.payroll};localStorage.setItem(STORAGE_KEY,JSON.stringify(demoState));state={...demoState,integration:{demo:true}};renderContent();return true;}
+  if(mode==='demo'){demoState={...clean,payroll:next.payroll||demoState.payroll};localStorage.setItem(STORAGE_KEY,JSON.stringify(demoState));state={...demoState,integration:{demo:true}};renderPeriod();renderContent();return true;}
   saving=true;document.querySelectorAll('button[type="submit"]').forEach(b=>b.disabled=true);
   const serialized=JSON.stringify(clean);if(!pendingSave||pendingSave.serialized!==serialized)pendingSave={serialized,requestId:uid()};
   const result=await jsonFetch('/api/operations/state',{method:'POST',body:JSON.stringify({revision,state:clean,requestId:pendingSave.requestId,label})});
-  revision=result.revision;serverState=result.state;state=attachPayroll(serverState);pendingSave=null;renderContent();return true;
+  revision=result.revision;serverState=result.state;state=attachPayroll(serverState);pendingSave=null;renderPeriod();renderContent();return true;
  }catch(error){toast(error.message);return false;}finally{saving=false;document.querySelectorAll('button[type="submit"]').forEach(b=>b.disabled=false);updateModeBanner();}
 }
 function renderPeriod(){
  document.querySelectorAll('[data-period]').forEach(b=>b.classList.toggle('active',b.dataset.period===ui.period));
- const input=$('#period-inputs');input.classList.toggle('custom',ui.period==='custom');
- input.innerHTML=ui.period==='custom'?`<input id="period-start" type="date" aria-label="조회 시작일" value="${ui.start}"><span style="color:#b0ba9f;font-size:10px">—</span><input id="period-end" type="date" aria-label="조회 종료일" value="${ui.end}">`:`<button class="date-step" data-shift="-1" aria-label="이전 ${ui.period==='day'?'날':'달'}">‹</button><input id="period-value" type="${ui.period==='day'?'date':'month'}" aria-label="조회 ${ui.period==='day'?'날짜':'월'}" value="${ui.period==='day'?ui.day:ui.month}"><button class="date-step" data-shift="1" aria-label="다음 ${ui.period==='day'?'날':'달'}">›</button><button class="text-btn" data-action="period-today">${ui.period==='day'?'오늘':'이번 달'}</button>`;
+ const input=$('#period-inputs');
+ input.classList.toggle('custom',ui.period==='custom');
+ const counts=markedDates(state);
+ const picker=(field,value)=>datePickerHtml({field,value,opened:calendarField===field,viewMonth:calendarMonth,counts,today});
+ input.innerHTML=ui.period==='custom'
+  ?picker('start',ui.start)+'<span class="operations-period-divider">—</span>'+picker('end',ui.end)
+  :'<button class="date-step" data-shift="-1" aria-label="이전 '+(ui.period==='day'?'날':'달')+'">‹</button>'+
+   picker(ui.period==='day'?'day':'month',ui.period==='day'?ui.day:ui.month)+
+   '<button class="date-step" data-shift="1" aria-label="다음 '+(ui.period==='day'?'날':'달')+'">›</button>'+
+   '<button class="text-btn" data-action="period-today">'+(ui.period==='day'?'오늘':'이번 달')+'</button>';
+}
+function chooseCalendarDate(field,date){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+ const next=field==='month'?date.slice(0,7):date;
+ if(field==='start'&&next>ui.end||field==='end'&&next<ui.start){toast('시작일은 종료일보다 늦을 수 없습니다.');return;}
+ if(!['day','month','start','end'].includes(field))return;
+ ui[field]=next;
+ calendarField=null;
+ renderPeriod();
+ renderContent();
 }
 function renderContent(){const r=getRange();if(mode==='real'&&!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'서버 장부와 급여를 연결하고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료가 연결되지 않아 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 연결해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">최신 급여 연결에 실패해 마지막으로 가져온 자료를 표시합니다.</div>':'')+(ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'||ui.page==='expenses'?renderLedger(state,r,ui.page,ui.filters):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r));}
 function renderPage(){
@@ -125,8 +145,13 @@ document.addEventListener('click',async event=>{
  if(button.dataset.close){$('#'+button.dataset.close).close();return;}
  if(button.dataset.page){navigate(button.dataset.page);return;}
  if(button.dataset.new){openEditor(button.dataset.new);return;}
- if(button.dataset.period){ui.period=button.dataset.period;renderPeriod();renderContent();return;}
- if(button.dataset.shift){const step=Number(button.dataset.shift);if(ui.period==='day')ui.day=shiftDate(ui.day,step);else{const [year,month]=ui.month.split('-').map(Number);ui.month=new Date(Date.UTC(year,month-1+step,1)).toISOString().slice(0,7);}renderPeriod();renderContent();return;}
+ if(button.dataset.calendarToggle){const field=button.dataset.calendarToggle;calendarField=calendarField===field?null:field;if(calendarField)calendarMonth=(field==='day'?ui.day:field==='month'?ui.month:ui[field]).slice(0,7);renderPeriod();return;}
+ if(button.dataset.calendarClose){calendarField=null;renderPeriod();return;}
+ if(button.dataset.calendarNav){const [year,month]=calendarMonth.split('-').map(Number);calendarMonth=new Date(Date.UTC(year,month-1+Number(button.dataset.calendarNav),1)).toISOString().slice(0,7);renderPeriod();return;}
+ if(button.dataset.calendarDay){chooseCalendarDate(calendarField,button.dataset.calendarDay);return;}
+ if(button.dataset.calendarApplyMonth){chooseCalendarDate('month',calendarMonth+'-01');return;}
+ if(button.dataset.period){calendarField=null;ui.period=button.dataset.period;renderPeriod();renderContent();return;}
+ if(button.dataset.shift){calendarField=null;const step=Number(button.dataset.shift);if(ui.period==='day')ui.day=shiftDate(ui.day,step);else{const [year,month]=ui.month.split('-').map(Number);ui.month=new Date(Date.UTC(year,month-1+step,1)).toISOString().slice(0,7);}renderPeriod();renderContent();return;}
  if(button.dataset.editorType){const type=button.dataset.editorType,draft=draftFromForm();draft.category=CATEGORIES[type][0];openEditor(type,editorEntry,draft);return;}
  if(button.dataset.editEntry){const e=state.entries.find(e=>e.id===button.dataset.editEntry);$('#detail').close();openEditor(e.type,e);return;}
  if(button.dataset.deleteEntry){const id=button.dataset.deleteEntry;confirmAction('거래를 삭제할까요?','연결된 입출금 내역도 함께 삭제되며, 잔액과 집계가 다시 계산됩니다.',async ()=>{if(await persist({...state,entries:state.entries.filter(e=>e.id!==id)})){$('#detail').close();toast('거래를 삭제했습니다.');}});return;}
@@ -146,12 +171,15 @@ document.addEventListener('click',async event=>{
 });
 document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('tr[data-entry],tr[data-payroll]')){event.preventDefault();event.target.click();}});
 document.addEventListener('change',event=>{
- const el=event.target;if(el.id==='partner-preset'){const f=$('#entry-form');f.elements.partner.value=el.value;f.elements.partner.readOnly=!!el.value;f.querySelector('[data-action="save-vendor"]').disabled=!!el.value;if(!el.value)f.elements.partner.focus();}
+ const el=event.target;
+ if(el.matches('[data-calendar-year],[data-calendar-month]')){const year=Number(document.querySelector('[data-calendar-year]')?.value),month=Number(document.querySelector('[data-calendar-month]')?.value);if(year>=1900&&year<=2100&&month>=1&&month<=12)calendarMonth=year+'-'+String(month).padStart(2,'0');renderPeriod();return;}if(el.id==='partner-preset'){const f=$('#entry-form');f.elements.partner.value=el.value;f.elements.partner.readOnly=!!el.value;f.querySelector('[data-action="save-vendor"]').disabled=!!el.value;if(!el.value)f.elements.partner.focus();}
  if(el.id==='record-payment')$('#initial-payment-fields').classList.toggle('hidden',!el.checked);
  if(el.id==='ledger-status'||el.id==='ledger-method'){ui.filters[el.id==='ledger-status'?'status':'method']=el.value;renderContent();}
- if(el.id==='period-value'){if(!el.value)return;ui[ui.period==='day'?'day':'month']=el.value;renderContent();}
- if(el.id==='period-start'||el.id==='period-end'){if(!el.value)return;const start=el.id==='period-start'?el.value:ui.start,end=el.id==='period-end'?el.value:ui.end;if(start>end){toast('시작일은 종료일보다 늦을 수 없습니다.');renderPeriod();return;}ui.start=start;ui.end=end;renderContent();}
+ if(el.id==='period-value'){if(!el.value)return;ui[ui.period==='day'?'day':'month']=el.value;calendarField=null;renderPeriod();renderContent();}
+ if(el.id==='period-start'||el.id==='period-end'){if(!el.value)return;const start=el.id==='period-start'?el.value:ui.start,end=el.id==='period-end'?el.value:ui.end;if(start>end){toast('시작일은 종료일보다 늦을 수 없습니다.');renderPeriod();return;}ui.start=start;ui.end=end;calendarField=null;renderPeriod();renderContent();}
 });
+document.addEventListener('pointerdown',event=>{if(calendarField&&!event.target.closest('#period-inputs')){calendarField=null;renderPeriod();}});
+document.addEventListener('keydown',event=>{if(calendarField&&event.key==='Escape'){event.preventDefault();calendarField=null;renderPeriod();document.querySelector('[data-calendar-toggle]')?.focus();}});
 document.addEventListener('input',event=>{if(event.target.id==='ledger-search'){const position=event.target.selectionStart;ui.filters.search=event.target.value;renderContent();const input=$('#ledger-search');input.focus();input.setSelectionRange(position,position);}});
 $('#confirm-ok').addEventListener('click',()=>{const action=confirmCallback;confirmCallback=null;$('#confirm-dialog').close();action?.();});$('#confirm-cancel').addEventListener('click',()=>$('#confirm-dialog').close());
 for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
