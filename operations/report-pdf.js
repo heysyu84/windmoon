@@ -54,74 +54,98 @@ function line(ctx,x1,y,x2,color=C.line){
 function block(ctx,x,y,w,h,color=C.pale){
  ctx.fillStyle=color;ctx.fillRect(x,y,w,h);
 }
-function heading(ctx,report,label,pageIndex,pageCount){
+// Preserve the original PDF design: header logo, 70pt KPI cards, two-column
+// income/expense ledger, rule placement and A4 margins. Only glyph rendering
+// is replaced with the browser's loaded Korean font.
+let logoPromise;
+function prepareLogo(){
+ if(!logoPromise)logoPromise=new Promise((resolve,reject)=>{
+  const image=new Image();
+  image.onload=()=>resolve(image);
+  image.onerror=()=>reject(Error('PDF 로고 이미지를 불러오지 못했습니다. 다시 시도해 주세요.'));
+  image.src=new URL('./assets/workspace-report-a-400-600.png',import.meta.url).href;
+ }).catch(error=>{logoPromise=undefined;throw error;});
+ return logoPromise;
+}
+function heading(ctx,report,label,pageIndex,pageCount,logo){
  const M=PAGE.margin,R=PAGE.width-M;
- draw(ctx,'WIND MOON',M,39,{size:12,bold:true,color:C.green});
- draw(ctx,label,M,80,{size:23,bold:true});
- draw(ctx,report.period||'',M,103,{size:10,color:C.muted});
- line(ctx,M,121,R);
- line(ctx,M,792,R);
- draw(ctx,'WIND MOON  ·  운영보고서  ·  영업일 기준',M,810,{size:8,color:C.muted});
- draw(ctx,String(pageIndex)+' / '+String(pageCount),R,810,{size:9,color:C.muted,align:'right'});
+ if(!logo)throw Error('PDF 로고 이미지가 준비되지 않았습니다.');
+ const scale=Math.min(104/logo.naturalWidth,56/logo.naturalHeight);
+ const width=logo.naturalWidth*scale,height=logo.naturalHeight*scale;
+ ctx.drawImage(logo,M,35,width,height);
+ draw(ctx,label,M+126,56,{size:21,bold:true});
+ draw(ctx,report.period||'',M+127,77,{size:10,color:C.muted,maxWidth:PAGE.width-M*2-127});
+ line(ctx,M,106,R);
+ line(ctx,M,796,R);
+ draw(ctx,'WINDMOON Workspace',M,812,{size:8,color:C.muted});
+ draw(ctx,String(pageIndex)+' / '+String(pageCount),R,812,{size:8,color:C.muted,align:'right'});
 }
-function card(ctx,x,y,w,label,value,featured=false){
- block(ctx,x,y,w,96,featured?C.green:C.pale);
- draw(ctx,label,x+14,y+27,{size:11,color:featured?C.white:C.muted});
- draw(ctx,currency(value),x+14,y+69,{size:18,bold:true,color:featured?C.white:C.ink,maxWidth:w-28});
+function card(ctx,x,w,label,value,featured=false){
+ block(ctx,x,148,w,70,featured?C.ink:C.pale);
+ draw(ctx,label,x+13,170,{size:10,color:featured?C.white:C.muted});
+ draw(ctx,new Intl.NumberFormat('ko-KR').format(number(value)),x+13,198,{size:19,bold:true,color:featured?C.white:C.ink,maxWidth:w-26});
 }
-function summaryRow(ctx,x,y,w,label,value,strong=false){
- if(strong){line(ctx,x,y-21,x+w);}
- draw(ctx,label,x,y,{size:10,bold:strong,maxWidth:w*.55});
- draw(ctx,currency(value),x+w,y,{size:11,bold:strong,align:'right',maxWidth:w*.47});
+function summaryRow(ctx,x,y,w,label,value,strong=false,highlight=false){
+ if(strong)line(ctx,x,y-15,x+w);
+ if(highlight)block(ctx,x-5,y-18,w+10,29,C.pale);
+ draw(ctx,label,x,y,{size:10,bold:strong,maxWidth:122});
+ draw(ctx,new Intl.NumberFormat('ko-KR').format(number(value)),x+w,y,{size:11,bold:strong,align:'right',maxWidth:w-126});
 }
-function summaryPage(report,index,count){
+function summaryPage(report,index,count,logo){
  const {canvas,ctx}=painter();
  const s=report.summary||{},t=report.totals||{},M=PAGE.margin,A=PAGE.width-2*M;
- heading(ctx,report,'운영보고서',index,count);
- const flag=report.demo?'예시 자료':'실제 장부';
- const periodInfo=flag+'  ·  '+number(report.activityDays)+'일 집계'+(report.unclosed?'  ·  미마감 '+number(report.unclosed)+'일 포함':'');
- draw(ctx,periodInfo,M,148,{size:10,color:C.muted,maxWidth:A});
- const gap=11,w=(A-gap*2)/3;
- card(ctx,M,170,w,'총매출',s.revenue);
- card(ctx,M+w+gap,170,w,'총비용',s.totalCosts);
- card(ctx,M+2*(w+gap),170,w,'운영수익',s.profit,true);
- const cw=(A-34)/2,left=M,right=M+cw+34;
- draw(ctx,'매출 내역',left,301,{size:13,bold:true});
- draw(ctx,'비용 내역',right,301,{size:13,bold:true});
- line(ctx,left,315,left+cw);line(ctx,right,315,right+cw);
- const sales=[
-  ['카드 매출',t.card],['현금 매출',t.cash],['계좌이체 매출',t.bank],
-  ['인포 단말기 매출',t.info],...(number(t.other)?[['기타 매출',t.other]]:[]),
-  ['환불',-number(t.refund)],['매출 합계',s.revenue]
+ heading(ctx,report,'운영보고서',index,count,logo);
+ const status=[report.demo?'예시 자료':'실제 장부',number(report.activityDays)+'일 집계',report.unclosed?'미마감 '+number(report.unclosed)+'일 포함':'',report.stale?'이전 급여 연결 자료 사용':''].filter(Boolean).join(' · ');
+ draw(ctx,status,M,130,{size:9,color:C.muted,maxWidth:A});
+ const cardW=(A-20)/3;
+ card(ctx,M,cardW,'총매출',s.revenue);
+ card(ctx,M+cardW+10,cardW,'총비용',s.totalCosts);
+ card(ctx,M+2*(cardW+10),cardW,'운영수익',s.profit,true);
+ const colW=(A-22)/2;
+ const rows=[
+  [['카드 매출',t.card],['현금 매출',t.cash],['계좌이체 매출',t.bank],['인포 단말기 매출',t.info],...(number(t.other)?[['기타 매출',t.other]]:[]),['환불',-number(t.refund)],['매출 합계',s.revenue]],
+  [['일반 지출',s.expenses],['직원 급여',s.payrollAccrued],['카드 정산 수수료',s.fees],['비용 합계',s.totalCosts]]
  ];
- const costs=[['일반 지출',s.expenses],['발생 인건비',s.payrollAccrued],['카드 정산 수수료',s.fees],['비용 합계',s.totalCosts]];
- sales.forEach(([label,value],i)=>summaryRow(ctx,left,342+i*34,cw,label,value,i===sales.length-1));
- costs.forEach(([label,value],i)=>summaryRow(ctx,right,342+i*34,cw,label,value,i===costs.length-1));
- const bottom=Math.max(sales.length,costs.length)*34+366;
- line(ctx,M,bottom,M+A);
- draw(ctx,'기준: 매출·지출·직원 급여는 선택 기간 영업일, 카드 정산 수수료는 실제 정산일',M,bottom+24,{size:9,color:C.muted,maxWidth:A});
- draw(ctx,'직원 급여는 공제 후 지급대상액이며, 선지급·잔금 지급을 비용에 중복 합산하지 않습니다.',M,bottom+44,{size:9,color:C.muted,maxWidth:A});
- draw(ctx,'기타 입금·내부 자금 이동은 매출에 포함하지 않습니다. 운영수익은 참고 집계입니다.',M,bottom+64,{size:9,color:C.muted,maxWidth:A});
- if(report.unclosed)draw(ctx,'주의: 미마감 날짜는 입력된 금액까지만 반영됩니다.',M,bottom+88,{size:9,color:C.amber,maxWidth:A});
- if(!number(report.activityDays))draw(ctx,'해당 기간에 기록된 매출·지출·급여가 없습니다.',M,bottom+115,{size:11,bold:true,color:C.red,maxWidth:A});
+ rows.forEach((items,i)=>{
+  const x=M+i*(colW+22);
+  draw(ctx,i?'비용 내역':'매출 내역',x,254,{size:12,bold:true});
+  line(ctx,x,266,x+colW);
+  let y=292;
+  items.forEach(([label,value],index)=>{
+   const total=index===items.length-1;
+   if(total)y+=6;
+   summaryRow(ctx,x,y,colW,label,value,total,label==='직원 급여');
+   y+=31;
+  });
+  if(i)draw(ctx,'직원 급여: 근무분의 공제 후 지급대상액',x,y+2,{size:8.5,color:C.muted,maxWidth:colW});
+ });
+ const foot=254+Math.max(...rows.map(x=>x.length))*31+62;
+ line(ctx,M,foot-17,M+A);
+ draw(ctx,'영업일 기준 · 카드 수수료는 정산일 기준 · 단위: 원',M,foot,{size:8.5,color:C.muted,maxWidth:A});
+ draw(ctx,'기타 입금과 자금 이동은 제외합니다. 운영수익은 등록된 자료 기준 참고 집계입니다.',M,foot+19,{size:8.5,color:C.muted,maxWidth:A});
+ if(report.unclosed)draw(ctx,'미마감 날짜는 입력된 금액까지만 반영됩니다.',M,foot+38,{size:8.5,color:C.amber,maxWidth:A});
  return canvas;
 }
-const COL=[82,95,94,90,95,67];
+const COL=[78,99,89,86,100,PAGE.width-2*PAGE.margin-452];
 const COL_NAMES=['영업일','매출','지출·수수료','직원 급여','운영수익','마감'];
-function dailyPage(report,days,index,count){
+function dailyPage(report,days,index,count,logo){
  const {canvas,ctx}=painter(),M=PAGE.margin,A=PAGE.width-2*M;
- heading(ctx,report,'일자별 내역',index,count);
- draw(ctx,'매출·지출·급여는 각 영업일에 귀속, 수수료는 정산일 기준',M,147,{size:10,color:C.muted,maxWidth:A});
- block(ctx,M,164,A,31,C.green);
+ heading(ctx,report,'일자별 내역',index,count,logo);
+ block(ctx,M,120,A,29,C.ink);
  let x=M;
- COL.forEach((w,i)=>{draw(ctx,COL_NAMES[i],i>=1&&i<=4?x+w-7:x+8,184,{size:9,bold:true,color:C.white,align:i>=1&&i<=4?'right':'left',maxWidth:w-12});x+=w;});
+ COL.forEach((w,i)=>{
+  draw(ctx,COL_NAMES[i],i>0&&i<5?x+w-8:x+8,139,{size:8.5,bold:true,color:C.white,align:i>0&&i<5?'right':'left',maxWidth:w-10});x+=w;
+ });
  days.forEach((day,i)=>{
-  const y=217+i*23.5;
-  if(i%2===0)block(ctx,M,y-17,A,23,C.pale);
+  const y=175+i*25;
+  if(i%2===0)block(ctx,M,y-17,A,25,C.pale);
   const status=day.status==='closed'?'완료':day.status==='draft'?'임시':day.activity?'미마감':'정산만';
-  const values=[day.date,currency(day.revenue),currency(day.costs),currency(day.payroll),currency(day.profit),status];
+  const moneyAmount=v=>new Intl.NumberFormat('ko-KR').format(number(v));
+  const values=[day.date,moneyAmount(day.revenue),moneyAmount(day.costs),moneyAmount(day.payroll),moneyAmount(day.profit),status];
   let left=M;
-  values.forEach((val,j)=>{draw(ctx,val,j>=1&&j<=4?left+COL[j]-7:left+7,y,{size:9,bold:j===4,maxWidth:COL[j]-11,align:j>=1&&j<=4?'right':'left'});left+=COL[j];});
+  values.forEach((value,j)=>{
+   draw(ctx,value,j>0&&j<5?left+COL[j]-8:left+7,y,{size:9,bold:j===4,maxWidth:COL[j]-14,align:j>0&&j<5?'right':'left'});left+=COL[j];
+  });
  });
  return canvas;
 }
@@ -163,13 +187,13 @@ function assemblePdf(images){
 export async function createReportPdf(report,options={}){
  if(!report||!report.summary||!report.totals||!Array.isArray(report.daily))throw Error('보고서 자료를 확인한 뒤 다시 내보내 주세요.');
  if(report.payrollUnavailable)throw Error('직원관리 급여 연결 후 내보내 주세요.');
- await prepareFonts();
+ const [logo]=await Promise.all([prepareLogo(),prepareFonts()]);
  const rows=options.includeDaily?report.daily:[];
  const dailyPages=[];
- for(let start=0;start<rows.length;start+=23)dailyPages.push(rows.slice(start,start+23));
+ for(let start=0;start<rows.length;start+=25)dailyPages.push(rows.slice(start,start+25));
  const count=1+dailyPages.length;
- const images=[await canvasJpeg(summaryPage(report,1,count))];
- for(let i=0;i<dailyPages.length;i++)images.push(await canvasJpeg(dailyPage(report,dailyPages[i],i+2,count)));
+ const images=[await canvasJpeg(summaryPage(report,1,count,logo))];
+ for(let i=0;i<dailyPages.length;i++)images.push(await canvasJpeg(dailyPage(report,dailyPages[i],i+2,count,logo)));
  return assemblePdf(images);
 }
 export function downloadReport(bytes,filename,type='application/pdf'){
