@@ -61,19 +61,20 @@ export function cashEvents(state,range){
 export function summarize(state,range){
  const entries=state.entries.filter(e=>inRange(e.businessDate,range));
  const payroll=state.payroll.filter(e=>inRange(e.businessDate,range));
- const revenue=entries.reduce((n,e)=>n+revenueValue(e),0);
+ const previousInfo=legacyInfoSales(state,range);
+ const revenue=entries.reduce((n,e)=>n+revenueValue(e),0)+previousInfo;
  const expenses=entries.filter(e=>e.type==='expense').reduce((n,e)=>n+e.amount,0);
  const payrollAccrued=payroll.reduce((n,e)=>n+e.amount,0);
  const events=cashEvents(state,range);
  const fees=-events.filter(e=>e.type==='fee').reduce((n,e)=>n+e.amount,0);
  const inflow=events.filter(e=>e.type!=='transfer'&&e.amount>0).reduce((n,e)=>n+e.amount,0);
  const outflow=-events.filter(e=>e.type!=='transfer'&&e.amount<0).reduce((n,e)=>n+e.amount,0);
- const receivables=entries.filter(e=>e.type==='sale').reduce((n,e)=>n+outstanding(e),0);
+ const receivables=entries.filter(e=>e.type==='sale').reduce((n,e)=>n+outstanding(e),0)+previousInfo;
  const payables=entries.filter(e=>e.type==='expense'||e.type==='refund').reduce((n,e)=>n+outstanding(e),0);
  const payrollPending=pendingPayroll(payroll);
  const payrollPaid=-events.filter(e=>e.type==='payroll').reduce((n,e)=>n+e.amount,0);
  const balances=accountBalances(state,range.end);
- return {revenue,expenses,payrollAccrued,fees,totalCosts:expenses+payrollAccrued+fees,profit:revenue-expenses-payrollAccrued-fees,receivables,payables,payrollPending,payrollPaid,inflow,outflow,netflow:inflow-outflow,balances,totalBalance:range.end<(state.openingDate||'0000-01-01')?null:Object.values(balances).reduce((a,b)=>a+b,0),entryCount:entries.length,payrollCount:payroll.length};
+ return {revenue,expenses,payrollAccrued,fees,totalCosts:expenses+payrollAccrued+fees,profit:revenue-expenses-payrollAccrued-fees,receivables,payables,payrollPending,payrollPaid,inflow,outflow,netflow:inflow-outflow,balances,totalBalance:range.end<(state.openingDate||'0000-01-01')?null:Object.values(balances).reduce((a,b)=>a+b,0),entryCount:entries.length+Object.entries(state.closings||{}).filter(([date,c])=>inRange(date,range)&&Number(c?.info)>0&&!state.entries.some(e=>e.id===infoSaleId(date))).length,payrollCount:payroll.length};
 }
 export function costGroups(state,range){
  const totals={};
@@ -151,14 +152,20 @@ export function makeEmpty(today=localDate()){
  return {version:1,demoDate:today,openingDate:today.slice(0,7)+'-01',openingBalances:{cash:0,bank:0},entries:[],payroll:[],closings:{},customCategories:[],vendors:[],staffUrl:STAFF_URL};
 }
 export const dayClosed=(state,date)=>state.closings?.[date]?.status==='closed';
-export function dailySales(state,date){return Object.fromEntries(['card','cash','bank'].map(method=>[method,state.entries.filter(e=>e.type==='sale'&&e.businessDate===date&&e.method===method).reduce((n,e)=>n+e.amount,0)]));}
+export const infoSaleId=date=>'closing:'+date+':info';
+export const isInfoTerminalSale=entry=>entry?.id===infoSaleId(entry.businessDate);
+// Treat legacy info fields as separate sales until a dedicated sale entry is saved.
+export function legacyInfoSales(state,range){
+ return Object.entries(state.closings||{}).filter(([date,closing])=>inRange(date,range)&&Number(closing?.info)>0&&!state.entries.some(e=>e.id===infoSaleId(date))).reduce((n,[,closing])=>n+Number(closing.info),0);
+}
+export function dailySales(state,date){return Object.fromEntries(['card','cash','bank'].map(method=>[method,state.entries.filter(e=>e.type==='sale'&&e.businessDate===date&&e.method===method&&!isInfoTerminalSale(e)).reduce((n,e)=>n+e.amount,0)]));}
 export function saveDayClosing(state,date,input){
  if(dayClosed(state,date))throw Error('마감된 영업일입니다. 먼저 마감을 다시 열어 주세요.');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw Error('영업일을 확인해 주세요.');
  const entries=[...state.entries],now=new Date().toISOString();
  for(const method of ['card','cash','bank']){
   const total=Number(input[method]);if(!Number.isSafeInteger(total)||total<0||total>99999999999)throw Error('매출은 0원 이상의 정수로 입력해 주세요.');
-  const manual=entries.filter(e=>e.type==='sale'&&e.businessDate===date&&e.method===method&&e.closingDate!==date).reduce((n,e)=>n+e.amount,0);
+  const manual=entries.filter(e=>e.type==='sale'&&e.businessDate===date&&e.method===method&&e.closingDate!==date&&!isInfoTerminalSale(e)).reduce((n,e)=>n+e.amount,0);
   if(total<manual)throw Error(({card:'카드',cash:'현금',bank:'이체'}[method])+' 매출은 이미 등록된 개별 매출 '+manual.toLocaleString('ko-KR')+'원 이상이어야 합니다. 개별 거래를 먼저 수정해 주세요.');
   const amount=total-manual,id=`closing:${date}:${method}`,index=entries.findIndex(e=>e.id===id),old=index<0?null:entries[index];
   if(!amount){if(old&&old.payments.some(p=>p.kind!=='closing'))throw Error('정산 기록이 있는 일마감 매출은 상세에서 입출금을 먼저 정리해 주세요.');if(index>=0)entries.splice(index,1);continue;}
@@ -166,9 +173,17 @@ export function saveDayClosing(state,date,input){
   const record={id,type:'sale',title:({card:'카드',cash:'현금',bank:'이체'}[method])+' 매출 · 일마감',businessDate:date,category:'일마감 매출',method,partner:'일마감',note:'영업일 합계 중 개별 매출을 제외한 금액',amount,payments,closingDate:date};
   validateEntry(record);if(index<0)entries.push(record);else entries[index]=record;
  }
- const info=Number(input.info??0),gross=Number(input.card)+Number(input.cash)+Number(input.bank);
- if(!Number.isSafeInteger(info)||info<0||info>99999999999)throw Error('인포 매출은 0원 이상의 정수로 입력해 주세요.');
- if(info>gross)throw Error('인포 매출은 카드·현금·계좌이체 매출 합계보다 클 수 없습니다.');
+ const info=Number(input.info??0);
+ if(!Number.isSafeInteger(info)||info<0||info>99999999999)throw Error('인포 단말기 매출은 0원 이상의 정수로 입력해 주세요.');
+ const infoId=infoSaleId(date),infoIndex=entries.findIndex(e=>e.id===infoId),oldInfo=infoIndex>=0?entries[infoIndex]:null;
+ if(info===0){
+  if(oldInfo?.payments?.length)throw Error('정산 입금 기록이 있는 인포 단말기 매출은 입금 내역을 먼저 확인해 주세요.');
+  if(infoIndex>=0)entries.splice(infoIndex,1);
+ }else{
+  const record={id:infoId,type:'sale',title:'인포 단말기 매출 · 일마감',businessDate:date,category:'인포 단말기 매출',method:'card',partner:'인포 단말기',note:'카드·현금·계좌이체 매출과 별도 · 입금은 정산 시 등록',amount:info,payments:oldInfo?.payments||[],closingDate:date};
+  validateEntry(record);
+  if(infoIndex>=0)entries[infoIndex]=record;else entries.push(record);
+ }
  const actualCash=input.actualCash===''||input.actualCash==null?null:Number(input.actualCash);
  if(actualCash!==null&&(!Number.isSafeInteger(actualCash)||actualCash<0))throw Error('실제 현금은 0원 이상의 정수로 입력해 주세요.');
  const next={...state,entries,closings:{...(state.closings||{})}},sum=summarize(next,{start:date,end:date});
@@ -192,7 +207,7 @@ export function validateWorkspace(input,previous=null){
  if(typeof closings!=='object'||Array.isArray(closings)||Object.keys(closings).length>10000)throw Error('마감 형식을 확인해 주세요.');
  for(const [date,c] of Object.entries(closings)){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||c.date!==date||!['draft','closed'].includes(c.status)||['card','cash','bank'].some(k=>!Number.isSafeInteger(c[k])||c[k]<0)||typeof c.note!=='string'||c.note.length>500)throw Error('마감 내용을 확인해 주세요.');
-  if(c.info!==undefined&&(!Number.isSafeInteger(c.info)||c.info<0||c.info>c.card+c.cash+c.bank))throw Error('인포 매출 금액을 확인해 주세요.');
+  if(c.info!==undefined&&(!Number.isSafeInteger(c.info)||c.info<0||c.info>99999999999))throw Error('인포 단말기 매출 금액을 확인해 주세요.');
  }
  if(previous){
   for(const e of previous.entries){
