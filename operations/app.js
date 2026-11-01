@@ -96,7 +96,9 @@ async function exportReport(format){
  const clicked=$(`[data-report-format="${format}"]`),label=clicked.textContent;clicked.textContent='준비 중…';
  try{
   assertReportReady(snapshot);
-  const exporter=await import('./assets/report-export-5ZMDGUYJ.js');
+  // The PDF path uses browser-rendered Korean pages rather than embedded subset fonts.
+  // XLSX keeps the original workbook exporter unchanged.
+  const exporter=await (format==='pdf'?import('./report-pdf.js?v=20261102-korean-fix'):import('./assets/report-export-5ZMDGUYJ.js'));
   const filename='WINDMOON_운영보고서_'+(snapshot.demo?'예시_':'')+snapshot.range.start+(snapshot.range.start===snapshot.range.end?'':'_'+snapshot.range.end);
   const bytes=format==='pdf'?await exporter.createReportPdf(snapshot,{includeDaily}):exporter.createReportWorkbook(reportSheets(snapshot));
   exporter.downloadReport(bytes,filename+'.'+format,format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
