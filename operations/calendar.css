@@ -25,9 +25,16 @@
 .operations-calendar-day.selected{background:#416b4e;color:white;font-weight:650}
 .operations-calendar-day.selected:hover{background:#325a40}
 .operations-calendar-dot{display:block;width:5px;height:5px;background:#559d72;border-radius:50%;position:absolute;bottom:3px;left:calc(50% - 2.5px)}
-.operations-calendar-day.selected .operations-calendar-dot{background:#e9f6e8}
-.operations-calendar-legend{display:flex;align-items:center;justify-content:center;gap:7px;margin:10px 0 8px;color:#718b78;font-size:11px}
-.operations-calendar-legend i{display:inline-block;width:6px;height:6px;background:#559d72;border-radius:50%}
+.operations-calendar-day.status-closed .operations-calendar-dot{background:#559d72}
+.operations-calendar-day.status-draft .operations-calendar-dot{background:#d9a23f}
+.operations-calendar-day.status-pending .operations-calendar-dot{background:#d55353}
+.operations-calendar-day.selected .operations-calendar-dot{box-shadow:0 0 0 1px #fff}
+.operations-calendar-legend{display:flex;align-items:center;justify-content:center;gap:11px;margin:10px 0 8px;color:#718b78;font-size:10px;flex-wrap:wrap}
+.operations-calendar-legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.operations-calendar-legend i{display:inline-block;width:7px;height:7px;background:#559d72;border-radius:50%;flex:0 0 7px}
+.operations-calendar-legend i.closed{background:#559d72}
+.operations-calendar-legend i.draft{background:#d9a23f}
+.operations-calendar-legend i.pending{background:#d55353}
 .operations-calendar-apply{width:100%;margin-bottom:10px;border:1px solid #b9d0b8;border-radius:6px;padding:8px;background:#eff6ee;color:#386047;font-size:12px;font-weight:650}
 .operations-calendar-direct{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #edf0eb;padding:10px 3px 0;font-size:11px;color:#819383}
 .operations-calendar-direct input{width:146px;min-width:0;font-size:12px!important}
