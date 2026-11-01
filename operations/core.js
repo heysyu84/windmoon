@@ -181,7 +181,7 @@ export function saveDayClosing(state,date,input){
   if(oldInfo?.payments?.length)throw Error('정산 입금 기록이 있는 인포 단말기 매출은 입금 내역을 먼저 확인해 주세요.');
   if(infoIndex>=0)entries.splice(infoIndex,1);
  }else{
-  const record={id:infoId,type:'sale',title:'인포 단말기 매출 · 일마감',businessDate:date,category:'인포 단말기 매출',method:'card',partner:'인포 단말기',note:'카드·현금·계좌이체 매출과 별도 · 입금은 정산 시 등록',amount:info,payments:oldInfo?.payments||[],closingDate:date};
+  const record={id:infoId,type:'sale',title:'인포 단말기 매출 · 일마감',businessDate:date,category:'인포 단말기 매출',method:'card',partner:'인포 단말기',note:'일반 카드 단말기 매출과 구분해 일매출에 별도 합산',amount:info,payments:oldInfo?.payments||[],closingDate:date};
   validateEntry(record);
   if(infoIndex>=0)entries[infoIndex]=record;else entries.push(record);
  }
