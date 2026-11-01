@@ -1,5 +1,5 @@
 import {buildReport,closingLabel} from './report-data.js?v=20261102-operating-report';
-import {escape as esc,money,shortDate,metric} from './views.js?v=20261102-operating-report';
+import {escape as esc,money,shortDate,metric} from './views.js?v=20261102-report-nav';
 
 export function reportBreakdown(report){
  const {summary:s,totals:t}=report,unknown=report.payrollUnavailable;

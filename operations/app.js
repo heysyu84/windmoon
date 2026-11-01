@@ -1,7 +1,7 @@
 import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261102-operating-report';
-import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-operating-report';
+import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-report-nav';
 import {buildReport,assertReportReady,reportSheets} from './report-data.js?v=20261102-operating-report';
-import {renderReport,reportBreakdown} from './report-view.js?v=20261102-operating-report';
+import {renderReport,reportBreakdown} from './report-view.js?v=20261102-report-nav';
 import {markedDates,datePickerHtml} from './calendar.js?v=20261102-closing-status';
 const $=s=>document.querySelector(s),today=localDate();
 if(location.hostname==='windmoon-operations.heysyu457310.chatgpt.site')for(const link of document.querySelectorAll('a[href^="../"]'))link.href=new URL(link.getAttribute('href').slice(3),'https://windmoon.pages.dev/').href;
