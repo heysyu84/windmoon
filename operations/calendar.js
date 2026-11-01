@@ -3,13 +3,27 @@ const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const dayKey = value => value instanceof Date ? value.toISOString().slice(0,10) : value;
 const shiftDay = (date, days) => { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0,10); };
 export function markedDates(state) {
+ // Completion is determined solely by a saved day-closing status.
+ // Payroll and ordinary transactions do not imply that closing was completed.
  const dates = new Map();
- const add = date => { if(datePattern.test(String(date||''))) dates.set(date,(dates.get(date)||0)+1); };
- for(const entry of state?.entries||[]) add(entry.businessDate);
- for(const [date, closing] of Object.entries(state?.closings||{})) if(closing) add(date);
- for(const salary of state?.payroll||[]) add(salary.businessDate);
+ const mark = (date, type) => {
+  if (!datePattern.test(String(date||''))) return;
+  const item = dates.get(date)||{entries:0,payroll:0,closing:null};
+  if (type==='entry') item.entries++;
+  if (type==='payroll') item.payroll++;
+  dates.set(date,item);
+ };
+ for (const entry of state?.entries||[]) mark(entry.businessDate,'entry');
+ for (const salary of state?.payroll||[]) mark(salary.businessDate,'payroll');
+ for (const [date,closing] of Object.entries(state?.closings||{})) {
+  if (!closing||!datePattern.test(date)) continue;
+  const item=dates.get(date)||{entries:0,payroll:0,closing:null};
+  item.closing=closing.status==='closed'?'closed':'draft';
+  dates.set(date,item);
+ }
  return dates;
 }
+
 const labels = {day:'조회 날짜',month:'조회 월',start:'조회 시작일',end:'조회 종료일'};
 export function datePickerHtml({field,value,opened=false,viewMonth,counts=new Map(),today}) {
  const isMonth=field==='month';
@@ -25,13 +39,17 @@ export function datePickerHtml({field,value,opened=false,viewMonth,counts=new Ma
  const gridStart=shiftDay(first,-firstWeekday);
  const heads=['일','월','화','수','목','금','토'].map(x=>'<span class="operations-calendar-weekday">'+x+'</span>').join('');
  const days=Array.from({length:42},(_,i)=>{
-  const date=shiftDay(gridStart,i),day=Number(date.slice(8)),n=counts.get(date)||0;
-  const flags=[date.slice(0,7)===validMonth?'':'other-month',date===today?'today':'',isMonth?(date===value+'-01'?'selected':''):(date===value?'selected':''),n?'has-data':''].filter(Boolean).join(' ');
-  return '<button type="button" class="operations-calendar-day '+flags+'" data-calendar-day="'+date+'" aria-label="'+date+(n?' 저장된 운영 데이터 '+n+'건':'')+'" title="'+date+(n?' · 저장된 운영 데이터 '+n+'건':'')+'" '+(date===value?'aria-current="date"':'')+'><span>'+day+'</span>'+(n?'<i class="operations-calendar-dot" aria-hidden="true"></i>':'')+'</button>';
+  const date=shiftDay(gridStart,i),day=Number(date.slice(8)),info=counts.get(date);
+  const n=info?(info.entries+info.payroll+(info.closing?1:0)):0;
+  const status=info?.closing==='closed'?'closed':info?.closing==='draft'?'draft':n?'pending':'';
+  const statusText=status==='closed'?'일마감 완료':status==='draft'?'일마감 임시 저장 · 미완료':status==='pending'?'일마감 미완료':'등록 기록 없음';
+  const detail=info?' · 거래 '+info.entries+'건 · 직원급여 '+info.payroll+'건':'';
+  const flags=[date.slice(0,7)===validMonth?'':'other-month',date===today?'today':'',isMonth?(date===value+'-01'?'selected':''):(date===value?'selected':''),n?'has-data':'',status?'status-'+status:''].filter(Boolean).join(' ');
+  return '<button type="button" class="operations-calendar-day '+flags+'" data-calendar-day="'+date+'" aria-label="'+date+' · '+statusText+detail+'" title="'+date+' · '+statusText+detail+'" '+(date===value?'aria-current="date"':'')+'><span>'+day+'</span>'+(n?'<i class="operations-calendar-dot" aria-hidden="true"></i>':'')+'</button>';
  }).join('');
  const years=Array.from({length:201},(_,i)=>1900+i).map(y=>'<option value="'+y+'" '+(y===year?'selected':'')+'>'+y+'년</option>').join('');
  const months=Array.from({length:12},(_,i)=>i+1).map(m=>'<option value="'+m+'" '+(m===month?'selected':'')+'>'+m+'월</option>').join('');
  const directId=field==='day'||field==='month'?'period-value':field==='start'?'period-start':'period-end';
  const directType=isMonth?'month':'date';
- return trigger+'<div class="operations-calendar-popover" role="dialog" aria-label="'+label+' 달력"><div class="operations-calendar-heading"><strong>'+label+'</strong><button type="button" data-calendar-close="1" aria-label="달력 닫기" class="operations-calendar-x">×</button></div><div class="operations-calendar-monthbar"><button type="button" data-calendar-nav="-1" aria-label="이전 달">‹</button><div class="operations-calendar-selects"><select data-calendar-year aria-label="달력 연도">'+years+'</select><select data-calendar-month aria-label="달력 월">'+months+'</select></div><button type="button" data-calendar-nav="1" aria-label="다음 달">›</button></div><div class="operations-calendar-grid">'+heads+days+'</div><div class="operations-calendar-legend"><i aria-hidden="true"></i>저장된 운영 기록이 있는 날</div>'+(isMonth?'<button type="button" class="operations-calendar-apply" data-calendar-apply-month="1">이 달 조회</button>':'')+'<label class="operations-calendar-direct">'+label+' 직접 입력<input id="'+directId+'" type="'+directType+'" value="'+value+'" aria-label="'+label+' 직접 입력"></label></div></div>';
+ return trigger+'<div class="operations-calendar-popover" role="dialog" aria-label="'+label+' 달력"><div class="operations-calendar-heading"><strong>'+label+'</strong><button type="button" data-calendar-close="1" aria-label="달력 닫기" class="operations-calendar-x">×</button></div><div class="operations-calendar-monthbar"><button type="button" data-calendar-nav="-1" aria-label="이전 달">‹</button><div class="operations-calendar-selects"><select data-calendar-year aria-label="달력 연도">'+years+'</select><select data-calendar-month aria-label="달력 월">'+months+'</select></div><button type="button" data-calendar-nav="1" aria-label="다음 달">›</button></div><div class="operations-calendar-grid">'+heads+days+'</div><div class="operations-calendar-legend" aria-label="달력 상태 범례"><span><i class="closed" aria-hidden="true"></i>마감 완료</span><span><i class="draft" aria-hidden="true"></i>임시 저장</span><span><i class="pending" aria-hidden="true"></i>미마감</span></div>'+(isMonth?'<button type="button" class="operations-calendar-apply" data-calendar-apply-month="1">이 달 조회</button>':'')+'<label class="operations-calendar-direct">'+label+' 직접 입력<input id="'+directId+'" type="'+directType+'" value="'+value+'" aria-label="'+label+' 직접 입력"></label></div></div>';
 }
