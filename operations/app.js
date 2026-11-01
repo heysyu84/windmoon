@@ -1,18 +1,14 @@
-import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261102-report';
-import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-report';
-import {buildReport,assertReportReady,reportSheets} from './report-data.js?v=20261102-report';
-import {renderReport,reportBreakdown} from './report-view.js?v=20261102-report';
+import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261102-daily-sales';
+import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-outflow-breakdown';
 import {markedDates,datePickerHtml} from './calendar.js?v=20261102-closing-status';
 const $=s=>document.querySelector(s),today=localDate();
-if(location.hostname==='windmoon-operations.heysyu457310.chatgpt.site')for(const link of document.querySelectorAll('a[href^="../"]'))link.href=new URL(link.getAttribute('href').slice(3),'https://windmoon.pages.dev/').href;
 let state=makeEmpty(today),demoState=makeDemo(today),serverState=makeEmpty(today),mode='real',revision=0,serverReady=false,saving=false,loading=false,pendingSave=null,payrollData=null;
 let loadMessage='';
-let reportSnapshot=null,reportExporting=false;
 try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)demoState=parseStored(raw);mode=localStorage.getItem('windmoon-operations-mode')==='demo'?'demo':'real';}catch{loadMessage='이전 브라우저 자료를 읽지 못했습니다. 서버 장부는 별도로 연결합니다.';}
 demoState.closings||={};demoState.staffUrl=STAFF_URL;
 const operatingDay=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()))<12?shiftDate(today,-1):today;
 if(mode==='demo')state={...demoState,integration:{demo:true}};
-const ui={page:NAV.some(n=>n.id===location.hash.slice(1))?location.hash.slice(1):'overview',period:'month',day:operatingDay,month:operatingDay.slice(0,7),start:shiftDate(today,-6),end:today,filters:{search:'',status:'',method:''}};
+const ui={page:NAV.some(n=>n.id===location.hash.slice(1))?location.hash.slice(1):'overview',period:'month',day:operatingDay,month:operatingDay.slice(0,7),start:shiftDate(today,-6),end:today,fundsView:'cash',filters:{search:'',status:'',method:''}};
 let editorEntry=null,editorType='sale',toastTimer,confirmCallback;
 let calendarField=null,calendarMonth=ui.month;
 const uid=()=>crypto.randomUUID();
@@ -24,7 +20,7 @@ function suiteLogin(){if(suiteLoginRedirecting)return;suiteLoginRedirecting=true
 async function jsonFetch(path,options={}){const shared=['https://heysyu84.github.io','https://windmoon.pages.dev'].includes(location.origin);let token='';if(shared){try{token=sessionStorage.getItem('windmoon-admin-session-v1')||'';}catch{}if(!token){suiteLogin();throw Error('통합 관리에 로그인해 주세요.');}}const endpoint=shared?'https://windmoon-staff.heysyu457310.chatgpt.site'+path.replace('/api/operations/','/api/suite/operations/'):path;const response=await fetch(endpoint,{...options,credentials:shared?'omit':'same-origin',cache:'no-store',headers:{'X-WM-Client':shared?'staff':'operations',...(options.body?{'Content-Type':'application/json'}:{}),...options.headers,...(shared?{Authorization:'Bearer '+token}:{})}});if(shared&&response.status===401){try{sessionStorage.removeItem('windmoon-admin-session-v1');}catch{}suiteLogin();throw Error('로그인이 만료되었습니다. 다시 로그인해 주세요.');}let body;try{body=await response.json();}catch{throw Error('서버 연결을 확인해 주세요. 로그인 또는 새로고침이 필요할 수 있습니다.');}if(!response.ok)throw Object.assign(Error(body.error||'서버 요청에 실패했습니다.'),{status:response.status});return body;}
 function attachPayroll(value){return {...value,staffUrl:STAFF_URL,payroll:payrollData?.payroll||[],integration:payrollData?{demo:false,stale:!!payrollData.stale,fetchedAt:payrollData.fetchedAt,sourceUpdatedAt:payrollData.sourceUpdatedAt,revision:payrollData.revision}:{demo:false,error:true}};}
 function updateModeBanner(){const banner=$('.demo-banner');banner.classList.toggle('real-mode',mode==='real');banner.innerHTML=mode==='demo'?'<span class="demo-label"><span class="demo-dot"></span>예시 화면</span><span>예시 입력은 이 브라우저에만 저장됩니다.</span><button data-action="about">안내 ↗</button>':'<span class="demo-label"><span class="demo-dot"></span>실제 장부</span><span>서버 저장 · PC와 휴대폰에서 같은 자료를 사용합니다.</span><button data-action="about">안내 ↗</button>';$('#mode-toggle').textContent=mode==='demo'?'실제 장부로':'예시 보기';$('#refresh-server').textContent=loading?'연결 중…':'서버 새로고침 ↻';$('#save-status').textContent=mode==='demo'?'예시 화면 · 이 브라우저에 저장':serverReady?'서버 연결됨 · 장부 버전 '+revision:'서버 연결 확인 중';}
-async function refreshServer(quiet=false){if(loading||saving||reportExporting)return;loading=true;updateModeBanner();const results=await Promise.allSettled([jsonFetch('/api/operations/state'),jsonFetch('/api/operations/payroll?refresh=1')]);const [ledger,payroll]=results;if(payroll.status==='fulfilled')payrollData=payroll.value;else if(payrollData)payrollData={...payrollData,stale:true};if(ledger.status==='fulfilled'){revision=ledger.value.revision;serverState=ledger.value.state;serverReady=true;if(mode==='real')state=attachPayroll(serverState);}else{if(!quiet)toast(ledger.reason.message);serverReady=false;}if(payroll.status==='rejected'&&!quiet&&serverReady)toast(payroll.reason.message);loading=false;updateModeBanner();renderPeriod();renderContent();}
+async function refreshServer(quiet=false){if(loading||saving)return;loading=true;updateModeBanner();const results=await Promise.allSettled([jsonFetch('/api/operations/state'),jsonFetch('/api/operations/payroll?refresh=1')]);const [ledger,payroll]=results;if(payroll.status==='fulfilled')payrollData=payroll.value;else if(payrollData)payrollData={...payrollData,stale:true};if(ledger.status==='fulfilled'){revision=ledger.value.revision;serverState=ledger.value.state;serverReady=true;if(mode==='real')state=attachPayroll(serverState);}else{if(!quiet)toast(ledger.reason.message);serverReady=false;}if(payroll.status==='rejected'&&!quiet&&serverReady)toast(payroll.reason.message);loading=false;updateModeBanner();renderPeriod();renderContent();}
 async function persist(next,label='장부 저장'){
  if(saving){toast('저장 중입니다. 잠시만 기다려 주세요.');return false;}
  if(mode==='real'&&!serverReady){toast('서버 연결 후 저장할 수 있습니다. 서버 새로고침을 눌러 주세요.');return false;}
@@ -60,51 +56,17 @@ function chooseCalendarDate(field,date){
  renderPeriod();
  renderContent();
 }
-function renderContent(){const r=getRange();if(mode==='real'&&!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'서버 장부와 급여를 연결하고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료가 연결되지 않아 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 연결해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">최신 급여 연결에 실패해 마지막으로 가져온 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{dailyOpen:!!$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'||ui.page==='expenses'?renderLedger(state,r,ui.page,ui.filters):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r));}
+function renderContent(){const r=getRange();$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(mode==='real'&&!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'서버 장부와 급여를 연결하고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료가 연결되지 않아 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 연결해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">최신 급여 연결에 실패해 마지막으로 가져온 자료를 표시합니다.</div>':'')+(ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'||ui.page==='expenses'?renderLedger(state,r,ui.page,ui.filters):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
 function renderPage(){
  if(ui.page==='closing')ui.period='day';
- const n=NAV.find(n=>n.id===ui.page);$('#crumb').textContent=n.name;$('#page-title').textContent=n.name;$('#eyebrow').textContent=n.eyebrow;$('#page-description').textContent=n.description;$('#period-note').textContent=ui.page==='funds'?'실제 입출금일 기준':'영업일 기준';
+ const n=NAV.find(n=>n.id===ui.page);$('#crumb').textContent=n.name;$('#page-title').textContent=n.name;$('#eyebrow').textContent=n.eyebrow;$('#page-description').textContent=n.description;$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';
  $('#desktop-nav').innerHTML=NAV.map(v=>`<button class="nav-item ${v.id===ui.page?'active':''}" data-page="${v.id}" ${v.id===ui.page?'aria-current="page"':''}>${icon(v.icon)}<span>${v.name}</span>${v.id===ui.page?'<i class="nav-dot"></i>':''}</button>`).join('');
  $('#mobile-nav').innerHTML=NAV.map(v=>`<button class="nav-item ${v.id===ui.page?'active':''}" data-page="${v.id}" ${v.id===ui.page?'aria-current="page"':''}>${icon(v.icon)}<span>${v.mobile}</span></button>`).join('');
- const button=$('#new-entry');button.classList.toggle('hidden',ui.page==='closing');button.innerHTML=icon(ui.page==='report'?'arrowDown':ui.page==='payroll'?'link':'plus',15)+(ui.page==='report'?'내보내기':ui.page==='expenses'?'지출 등록':ui.page==='sales'?'매출 등록':ui.page==='payroll'?'연동 안내':'거래 등록');
+ const button=$('#new-entry');button.classList.toggle('hidden',ui.page==='closing');button.innerHTML=icon(ui.page==='payroll'?'link':'plus',15)+(ui.page==='expenses'?'지출 등록':ui.page==='sales'?'매출 등록':ui.page==='payroll'?'연동 안내':'거래 등록');
  renderPeriod();document.querySelectorAll('[data-period]').forEach(b=>b.classList.toggle('hidden',ui.page==='closing'&&b.dataset.period!=='day'));renderContent();
 }
 function navigate(page){ui.page=page;ui.filters={search:'',status:'',method:''};history.replaceState(null,'','#'+page);renderPage();window.scrollTo({top:0,behavior:'instant'});}
 function showDialog(id){const d=$('#'+id);if(!d.open)d.showModal();}
-function openReportDay(date){
- const report=buildReport(state,{start:date,end:date});
- $('#report-day-title').textContent=shortDate(date)+' 세부내역';
- $('#report-day-body').innerHTML=`<div class="report-day-meta"><span>영업일 기준 · 단위: 원</span><span>${report.closed?'마감 완료':report.activityDays?'미마감':'정산 내역'}</span></div>${reportBreakdown(report)}<div class="report-day-totals"><span>운영수익</span><strong>${money(report.payrollUnavailable?null:report.summary.profit)}원</strong></div>`;
- showDialog('report-day');
-}
-function openReportExport(){
- if(reportExporting||loading||saving){toast('연결·저장이 끝난 뒤 내보내 주세요.');return;}
- if(mode==='real'&&!serverReady){toast('서버 새로고침 후 내보내 주세요.');return;}
- try{
-  reportSnapshot=buildReport(state,getRange());assertReportReady(reportSnapshot);
-  $('#report-export-period').textContent=reportSnapshot.period;
-  $('#report-export-warning').textContent=[reportSnapshot.demo?'예시 자료로 내보냅니다.':'',reportSnapshot.unclosed?'미마감 '+reportSnapshot.unclosed+'일이 포함되어 있습니다. 입력된 금액까지만 반영됩니다.':'',reportSnapshot.stale?'마지막으로 연결한 급여 자료가 반영됩니다.':''].filter(Boolean).join(' ');
-  $('#report-export-error').textContent='';showDialog('report-export');
- }catch(error){toast(error.message);}
-}
-async function exportReport(format){
- if(reportExporting||!reportSnapshot||!['pdf','xlsx'].includes(format))return;
- reportExporting=true;
- const snapshot=reportSnapshot,includeDaily=$('#report-export-daily').checked;
- $('#report-export-error').textContent='';
- const buttons=[...$('#report-export').querySelectorAll('button')];buttons.forEach(button=>{button.disabled=true;});
- const clicked=$(`[data-report-format="${format}"]`),label=clicked.textContent;clicked.textContent='준비 중…';
- try{
-  assertReportReady(snapshot);
-  const exporter=await import('./assets/report-export-5ZMDGUYJ.js');
-  const filename='WINDMOON_운영보고서_'+(snapshot.demo?'예시_':'')+snapshot.range.start+(snapshot.range.start===snapshot.range.end?'':'_'+snapshot.range.end);
-  const bytes=format==='pdf'?await exporter.createReportPdf(snapshot,{includeDaily}):exporter.createReportWorkbook(reportSheets(snapshot));
-  exporter.downloadReport(bytes,filename+'.'+format,format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  $('#report-export').close();toast((format==='pdf'?'PDF':'엑셀')+' 보고서를 저장했습니다.');
- }catch(error){$('#report-export-error').textContent=error.message||'보고서를 만들지 못했습니다. 다시 시도해 주세요.';}
- finally{reportExporting=false;buttons.forEach(button=>{button.disabled=false;});clicked.textContent=label;}
-}
-$('#report-export').addEventListener('cancel',event=>{if(reportExporting)event.preventDefault();});
 function confirmAction(title,copy,action,label='삭제하기'){$('#confirm-title').textContent=title;$('#confirm-body').innerHTML=`<p style="font-size:12px;color:#849775;line-height:1.9;margin:0">${esc(copy)}</p>`;$('#confirm-ok').textContent=label;confirmCallback=action;showDialog('confirm-dialog');}
 function draftFromForm(){const f=$('#entry-form');return {title:f.elements.title?.value||'',amount:f.elements.amount?.value||'',businessDate:f.elements.businessDate?.value||today,category:f.elements.category?.value||'',method:f.elements.method?.value||'bank',partner:f.elements.partner?.value||'',note:f.elements.note?.value||''};}
 function openEditor(type='sale',entry=null,draft=null){
@@ -176,15 +138,14 @@ async function submitClosing(status='closed'){
 $('#entry-form').addEventListener('submit',submitEntry);
 $('#settings-form').addEventListener('submit',async event=>{event.preventDefault();try{const f=event.currentTarget,openingBalances={};for(const a of ACCOUNTS){const value=Number(f.elements['opening-'+a.id].value);if(!Number.isSafeInteger(value))throw new Error('기초 잔액은 정수로 입력해 주세요.');openingBalances[a.id]=value;}const customCategories=[...new Set(f.elements.categories.value.split(',').map(x=>x.trim()).filter(Boolean))],vendors=[...new Set(f.elements.vendors.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];if(await persist({...state,openingDate:f.elements.openingDate.value,openingBalances,customCategories,vendors},'기초 잔액·설정 저장')){$('#settings').close();syncVendorOptions();toast('설정을 저장했습니다.');}}catch(error){$('#settings-error').textContent=error.message;}});
 document.addEventListener('submit',async event=>{if(event.target.id!=='settlement-form')return;event.preventDefault();const f=event.target,e=state.entries.find(e=>e.id===f.dataset.entryId);try{const next=addPayment(e,{id:uid(),date:f.elements.date.value,amount:Number(f.elements.amount.value),accountId:f.elements.accountId.value,fee:Number(f.elements.fee?.value||0)});if(await persist({...state,entries:state.entries.map(x=>x.id===e.id?next:x)})){openEntryDetail(e.id);toast('실제 입출금 내역을 기록했습니다.');}}catch(error){$('#settlement-error').textContent=error.message;}});
-$('#new-entry').addEventListener('click',()=>ui.page==='report'?openReportExport():ui.page==='payroll'?openAbout(true):openEditor(ui.page==='expenses'?'expense':'sale'));
+$('#new-entry').addEventListener('click',()=>ui.page==='payroll'?openAbout(true):openEditor(ui.page==='expenses'?'expense':'sale'));
 $('#settings-button').innerHTML=icon('settings',17);$('#settings-button').addEventListener('click',openSettings);$('#sidebar-settings-icon').innerHTML=icon('settings',18);$('#staff-icon').innerHTML=icon('users',18);$('#staff-sidebar').href=STAFF_URL;
 document.addEventListener('click',async event=>{
  const button=event.target.closest('button,[data-entry],[data-payroll]');if(!button)return;
- if(button.dataset.close){if(button.dataset.close==='report-export'&&reportExporting)return;$('#'+button.dataset.close).close();return;}
- if(button.dataset.reportDay){openReportDay(button.dataset.reportDay);return;}
- if(button.dataset.reportFormat){await exportReport(button.dataset.reportFormat);return;}
+ if(button.dataset.close){$('#'+button.dataset.close).close();return;}
  if(button.dataset.page){navigate(button.dataset.page);return;}
  if(button.dataset.new){openEditor(button.dataset.new);return;}
+ if(button.dataset.fundsView){if(!['cash','accrual'].includes(button.dataset.fundsView))return;ui.fundsView=button.dataset.fundsView;renderContent();return;}
  if(button.dataset.calendarToggle){const field=button.dataset.calendarToggle;calendarField=calendarField===field?null:field;if(calendarField)calendarMonth=(field==='day'?ui.day:field==='month'?ui.month:ui[field]).slice(0,7);renderPeriod();return;}
  if(button.dataset.calendarClose){calendarField=null;renderPeriod();return;}
  if(button.dataset.calendarNav){const [year,month]=calendarMonth.split('-').map(Number);calendarMonth=new Date(Date.UTC(year,month-1+Number(button.dataset.calendarNav),1)).toISOString().slice(0,7);renderPeriod();return;}
