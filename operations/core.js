@@ -154,6 +154,7 @@ export function makeEmpty(today=localDate()){
 export const dayClosed=(state,date)=>state.closings?.[date]?.status==='closed';
 export const infoSaleId=date=>'closing:'+date+':info';
 export const isInfoTerminalSale=entry=>entry?.id===infoSaleId(entry.businessDate);
+export function infoSaleAmount(state,date){return state.entries.find(e=>e.id===infoSaleId(date))?.amount??Number(state.closings?.[date]?.info||0);}
 // Treat legacy info fields as separate sales until a dedicated sale entry is saved.
 export function legacyInfoSales(state,range){
  return Object.entries(state.closings||{}).filter(([date,closing])=>inRange(date,range)&&Number(closing?.info)>0&&!state.entries.some(e=>e.id===infoSaleId(date))).reduce((n,[,closing])=>n+Number(closing.info),0);
@@ -187,7 +188,7 @@ export function saveDayClosing(state,date,input){
  const actualCash=input.actualCash===''||input.actualCash==null?null:Number(input.actualCash);
  if(actualCash!==null&&(!Number.isSafeInteger(actualCash)||actualCash<0))throw Error('실제 현금은 0원 이상의 정수로 입력해 주세요.');
  const next={...state,entries,closings:{...(state.closings||{})}},sum=summarize(next,{start:date,end:date});
- next.closings[date]={date,status:input.status==='draft'?'draft':'closed',card:Number(input.card),cash:Number(input.cash),bank:Number(input.bank),info,actualCash,expectedCash:sum.balances.cash,difference:actualCash===null?null:sum.balances.cash==null?null:actualCash-sum.balances.cash,note:String(input.note||'').slice(0,500),savedAt:now,closedAt:input.status==='draft'?null:now};
+ next.closings[date]={date,status:input.status==='draft'?'draft':'closed',card:Number(input.card),cash:Number(input.cash),bank:Number(input.bank),info:0,actualCash,expectedCash:sum.balances.cash,difference:actualCash===null?null:sum.balances.cash==null?null:actualCash-sum.balances.cash,note:String(input.note||'').slice(0,500),savedAt:now,closedAt:input.status==='draft'?null:now};
  return next;
 }
 export function validateWorkspace(input,previous=null){
