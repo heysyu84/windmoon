@@ -36,3 +36,18 @@ td{font-size:12px;color:#687b5d}.cell-title{font-size:12px;color:#4b6441}.cell-s
 .funds-accrual-details .report-line.total strong{font-weight:750;color:#356247}
 .funds-accrual-note{margin:0 0 15px;border:1px solid #e3eae0;border-radius:8px;background:#f7f9f5;color:#748771;font-size:11px;line-height:1.9;padding:13px 16px}
 @media(max-width:740px){.funds-view-switch{gap:8px;margin-bottom:12px}.funds-view-buttons{width:100%}.funds-view-buttons button{flex:1;padding:9px 5px;font-size:11px}.accrual-summary{gap:10px}.accrual-summary div{width:100%;display:flex;justify-content:space-between;align-items:center}.accrual-summary strong{margin-left:auto;font-size:15px}.funds-accrual-note{font-size:10px}}
+
+/* Separate point-of-sale locations without widening the mobile form. */
+.closing-sales-groups{display:grid;grid-template-columns:3fr 2fr;gap:18px;margin-bottom:20px}
+.closing-sales-group{min-width:0;border:1px solid #dce4df;border-radius:11px;padding:16px 14px 2px;margin:0;background:#fbfcfc}
+.closing-sales-group legend{padding:0 7px;font-size:13px;font-weight:650;color:#344b47}
+.closing-info-group{background:#f7fafb;border-color:#d9e4eb}
+.closing-inputs.closing-store-inputs{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.closing-inputs.closing-info-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.closing-sales-group .field{min-width:0;margin-bottom:16px}
+.closing-sales-group .field>span{font-size:11px}
+.closing-sales-group .amount-field input{width:100%;min-width:0;font-size:21px;padding-left:10px;padding-right:8px}
+.closing-summary>.closing-grand-total{margin-left:auto;font-size:12px;color:#344b47}
+.closing-summary>.closing-grand-total strong{font-size:18px}
+@media(max-width:1200px){.closing-sales-groups{grid-template-columns:1fr;gap:16px}}
+@media(max-width:640px){.closing-inputs.closing-store-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}.closing-store-inputs>.field:last-child{grid-column:1/-1}.closing-sales-groups{gap:14px}.closing-sales-group{padding:13px 12px 0}.closing-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px}.closing-summary>span{font-size:10px;display:flex;justify-content:space-between;align-items:center}.closing-summary strong{font-size:13px;margin-left:7px}.closing-summary>.closing-grand-total{grid-column:1/-1;margin-left:0;width:auto;border-top:1px solid #d6e1d8;padding-top:12px}.closing-summary>.closing-grand-total strong{font-size:19px}}

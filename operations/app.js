@@ -1,7 +1,7 @@
-import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,savedVendors} from './core.js?v=20261102-operating-report';
-import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-report-nav';
-import {buildReport,assertReportReady,reportSheets} from './report-data.js?v=20261102-operating-report';
-import {renderReport,reportBreakdown} from './report-view.js?v=20261102-report-nav';
+import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,saleMethodName,savedVendors} from './core.js?v=20261102-sales-channels';
+import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-sales-channels';
+import {buildReport,assertReportReady,reportSheets} from './report-data.js?v=20261102-sales-channels';
+import {renderReport,reportBreakdown} from './report-view.js?v=20261102-sales-channels';
 import {markedDates,datePickerHtml} from './calendar.js?v=20261102-closing-status';
 const $=s=>document.querySelector(s),today=localDate();
 if(location.hostname==='windmoon-operations.heysyu457310.chatgpt.site')for(const link of document.querySelectorAll('a[href^="../"]'))link.href=new URL(link.getAttribute('href').slice(3),'https://windmoon.pages.dev/').href;
@@ -96,9 +96,7 @@ async function exportReport(format){
  const clicked=$(`[data-report-format="${format}"]`),label=clicked.textContent;clicked.textContent='준비 중…';
  try{
   assertReportReady(snapshot);
-  // The PDF path uses browser-rendered Korean pages rather than embedded subset fonts.
-  // XLSX keeps the original workbook exporter unchanged.
-  const exporter=await (format==='pdf'?import('./report-pdf.js?v=20261102-branded-layout'):import('./assets/report-export-5ZMDGUYJ.js'));
+  const exporter=await import('./assets/report-export-XZXZDWEK.js');
   const filename='WINDMOON_운영보고서_'+(snapshot.demo?'예시_':'')+snapshot.range.start+(snapshot.range.start===snapshot.range.end?'':'_'+snapshot.range.end);
   const bytes=format==='pdf'?await exporter.createReportPdf(snapshot,{includeDaily}):exporter.createReportWorkbook(reportSheets(snapshot));
   exporter.downloadReport(bytes,filename+'.'+format,format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -139,7 +137,7 @@ async function registerVendor(){
 async function submitEntry(event){
  event.preventDefault();const f=event.currentTarget;
  try{
-  const e={id:editorEntry?.id||uid(),type:editorType,title:f.elements.title.value.trim(),amount:Number(f.elements.amount.value),businessDate:f.elements.businessDate.value,category:f.elements.category.value.trim()||CATEGORIES[editorType][0],partner:f.elements.partner?.value.trim()||'',note:f.elements.note.value.trim(),method:f.elements.method?.value||'bank',payments:editorEntry?.payments||[]};
+  const e={...editorEntry,id:editorEntry?.id||uid(),type:editorType,title:f.elements.title.value.trim(),amount:Number(f.elements.amount.value),businessDate:f.elements.businessDate.value,category:f.elements.category.value.trim()||CATEGORIES[editorType][0],partner:f.elements.partner?.value.trim()||'',note:f.elements.note.value.trim(),method:f.elements.method?.value||'bank',payments:editorEntry?.payments||[]};
   if(editorType==='transfer'){e.fromAccount=f.elements.fromAccount.value;e.toAccount=f.elements.toAccount.value;e.paymentDate=f.elements.paymentDate.value;}
   else if(!editorEntry&&f.elements.recordPayment.checked){e.payments=addPayment({...e,payments:[]},{id:uid(),date:f.elements.paidDate.value,amount:f.elements.paidAmount.value?Number(f.elements.paidAmount.value):e.amount,accountId:f.elements.accountId.value,fee:editorType==='sale'?Number(f.elements.fee.value||0):0}).payments;}
   validateEntry(e);
@@ -152,7 +150,7 @@ function openEntryDetail(id){
  const e=state.entries.find(e=>e.id===id);if(!e)return;
  $('#detail-title').textContent=e.title;$('#detail-eyebrow').textContent='TRANSACTION DETAIL';
  const transfer=e.type==='transfer',owed=outstanding(e),isIncoming=e.type==='sale'||e.type==='funding';
- $('#detail-body').innerHTML=`<div style="display:flex;gap:8px;align-items:center"><span class="type-pill">${TYPE_NAMES[e.type]}</span>${statusPill(e)}</div><div class="detail-amount">${money(e.amount)}<small>원</small></div><dl class="detail-meta"><dt>영업일</dt><dd>${shortDate(e.businessDate)}</dd><dt>분류</dt><dd>${esc(e.category)}</dd><dt>거래처 · 대상</dt><dd>${esc(e.partner||'—')}</dd>${transfer?`<dt>자금 이동</dt><dd>${accountName(e.fromAccount)} → ${accountName(e.toAccount)}</dd><dt>실제 이동일</dt><dd>${shortDate(e.paymentDate)}</dd>`:`<dt>결제수단</dt><dd>${{card:'카드',cash:'현금',bank:'계좌이체'}[e.method]||'—'}</dd><dt>${isIncoming?'입금 기록액':'지급 기록액'}</dt><dd>${money(paidAmount(e))}원</dd><dt>${isIncoming?'받을 금액':'지급할 금액'}</dt><dd><strong>${money(owed)}원</strong></dd>`}<dt>비고</dt><dd style="white-space:pre-wrap">${esc(e.note||'—')}</dd></dl>${transfer?'<div class="inline-note">계좌 간 이동으로 매출·비용에는 반영하지 않습니다.</div>':`<h3 class="detail-section-title">입출금 기록</h3>${paymentRows(e)}${owed>0?`<form id="settlement-form" class="payment-form" data-entry-id="${esc(e.id)}" novalidate><h3>${isIncoming?'입금·정산':'지급'} 기록 추가</h3><div class="field-row"><label class="field"><span>금액 · 원</span><input name="amount" type="number" min="1" max="${owed}" step="1" inputmode="numeric" value="${owed}"></label><label class="field"><span>실제 입출금일</span><input name="date" type="date" value="${today}"></label></div><div class="field-row"><label class="field"><span>입출금 위치</span><select name="accountId">${options(ACCOUNTS.map(a=>[a.id,a.name]),e.method==='cash'?'cash':'bank')}</select></label>${e.type==='sale'?'<label class="field"><span>정산 수수료 · 원</span><input name="fee" type="number" min="0" step="1" inputmode="numeric" value="0"></label>':''}</div><div id="settlement-error" class="form-error" role="alert"></div><button class="primary-btn" type="submit">${isIncoming?'입금':'지급'} 내역 기록</button></form>`:'<div class="soft-callout">거래금액 전체의 입출금이 기록되었습니다.</div>'}`}`;
+ $('#detail-body').innerHTML=`<div style="display:flex;gap:8px;align-items:center"><span class="type-pill">${TYPE_NAMES[e.type]}</span>${statusPill(e)}</div><div class="detail-amount">${money(e.amount)}<small>원</small></div><dl class="detail-meta"><dt>영업일</dt><dd>${shortDate(e.businessDate)}</dd><dt>분류</dt><dd>${esc(e.category)}</dd><dt>거래처 · 대상</dt><dd>${esc(e.partner||'—')}</dd>${transfer?`<dt>자금 이동</dt><dd>${accountName(e.fromAccount)} → ${accountName(e.toAccount)}</dd><dt>실제 이동일</dt><dd>${shortDate(e.paymentDate)}</dd>`:`<dt>결제수단</dt><dd>${esc(saleMethodName(e))}</dd><dt>${isIncoming?'입금 기록액':'지급 기록액'}</dt><dd>${money(paidAmount(e))}원</dd><dt>${isIncoming?'받을 금액':'지급할 금액'}</dt><dd><strong>${money(owed)}원</strong></dd>`}<dt>비고</dt><dd style="white-space:pre-wrap">${esc(e.note||'—')}</dd></dl>${transfer?'<div class="inline-note">계좌 간 이동으로 매출·비용에는 반영하지 않습니다.</div>':`<h3 class="detail-section-title">입출금 기록</h3>${paymentRows(e)}${owed>0?`<form id="settlement-form" class="payment-form" data-entry-id="${esc(e.id)}" novalidate><h3>${isIncoming?'입금·정산':'지급'} 기록 추가</h3><div class="field-row"><label class="field"><span>금액 · 원</span><input name="amount" type="number" min="1" max="${owed}" step="1" inputmode="numeric" value="${owed}"></label><label class="field"><span>실제 입출금일</span><input name="date" type="date" value="${today}"></label></div><div class="field-row"><label class="field"><span>입출금 위치</span><select name="accountId">${options(ACCOUNTS.map(a=>[a.id,a.name]),e.method==='cash'?'cash':'bank')}</select></label>${e.type==='sale'?'<label class="field"><span>정산 수수료 · 원</span><input name="fee" type="number" min="0" step="1" inputmode="numeric" value="0"></label>':''}</div><div id="settlement-error" class="form-error" role="alert"></div><button class="primary-btn" type="submit">${isIncoming?'입금':'지급'} 내역 기록</button></form>`:'<div class="soft-callout">거래금액 전체의 입출금이 기록되었습니다.</div>'}`}`;
  $('#detail-footer').innerHTML=`<button class="danger-text" data-delete-entry="${esc(e.id)}">거래 삭제</button><button class="secondary-btn" data-close="detail">닫기</button><button class="primary-btn" data-edit-entry="${esc(e.id)}">수정하기</button>`;showDialog('detail');
 }
 function openPayrollDetail(id){const e=state.payroll.find(e=>e.id===id);if(!e)return;$('#detail-title').textContent=e.employee+' · 급여';$('#detail-eyebrow').textContent='PAYROLL PREVIEW';$('#detail-body').innerHTML=`${statusPill(e)}<div class="detail-amount">${money(e.amount)}<small>원</small></div><dl class="detail-meta"><dt>영업일</dt><dd>${shortDate(e.businessDate)}</dd><dt>소속</dt><dd>${esc(e.team)} · ${esc(e.role)}</dd><dt>지급액</dt><dd>${money(paidAmount(e))}원</dd><dt>남은 급여</dt><dd>${money(outstanding(e))}원</dd><dt>원본 기록</dt><dd>${esc(e.sourceId)}${mode==='demo'?' · 예시':''}</dd></dl><h3 class="detail-section-title">지급 내역 · 선지급 포함</h3>${paymentRows(e,true)}<div class="soft-callout">직원관리의 공제 후 지급대상액을 기준으로 합니다. 선지급과 잔금은 동일 급여의 지급 내역으로 합산합니다. 선지급일은 직원관리의 영업일 기준입니다.</div>`;$('#detail-footer').innerHTML=`<button class="secondary-btn" data-close="detail">닫기</button><a href="${esc(state.staffUrl)}" target="_blank" rel="noopener" class="primary-btn">직원관리 열기 ↗</a>`;showDialog('detail');}
@@ -172,7 +170,7 @@ function openSettings(){
 }
 async function submitClosing(status='closed'){
  const f=$('#closing-form');if(!f)return;
- try{const next=saveDayClosing(state,ui.day,{card:f.elements.card.value,cash:f.elements.cash.value,bank:f.elements.bank.value,info:f.elements.info.value,actualCash:f.elements.actualCash.value,note:f.elements.note.value,status});if(await persist(next,ui.day+' 일마감 '+(status==='closed'?'완료':'임시 저장')))toast(status==='closed'?'일마감을 완료했습니다.':'마감을 임시 저장했습니다.');}
+ try{const next=saveDayClosing(state,ui.day,{card:f.elements.card.value,cash:f.elements.cash.value,bank:f.elements.bank.value,infoCard:f.elements.infoCard.value,infoBank:f.elements.infoBank.value,actualCash:f.elements.actualCash.value,note:f.elements.note.value,status});if(await persist(next,ui.day+' 일마감 '+(status==='closed'?'완료':'임시 저장')))toast(status==='closed'?'일마감을 완료했습니다.':'마감을 임시 저장했습니다.');}
  catch(error){$('#closing-error').textContent=error.message;}
 }
 $('#entry-form').addEventListener('submit',submitEntry);
@@ -232,10 +230,10 @@ window.addEventListener('storage',event=>{if(event.key===STORAGE_KEY)toast('다�
 document.addEventListener('submit',event=>{if(event.target.id==='closing-form'){event.preventDefault();submitClosing('closed');}});
 document.addEventListener('input',event=>{
  if(!event.target.closest('#closing-form'))return;const f=$('#closing-form'),sales=dailySales(state,ui.day),summary=state.entries.filter(e=>e.type==='refund'&&e.businessDate===ui.day).reduce((n,e)=>n+e.amount,0);
- const values=['card','cash','bank'].map(k=>Number(f.elements[k].value)||0);$('#closing-total').textContent=money(values.reduce((a,b)=>a+b,0)+(Number(f.elements.info.value)||0)-summary)+'원';
- $('#closing-info').textContent=money(Number(f.elements.info.value)||0)+'원';
+ const values=['card','cash','bank'].map(k=>Number(f.elements[k].value)||0),storeTotal=values.reduce((a,b)=>a+b,0),infoTotal=(Number(f.elements.infoCard.value)||0)+(Number(f.elements.infoBank.value)||0);$('#closing-total').textContent=money(storeTotal+infoTotal-summary)+'원';
+ $('#closing-store').textContent=money(storeTotal)+'원';$('#closing-info').textContent=money(infoTotal)+'원';
  const currentCash=state.closings?.[ui.day]?.expectedCash;
- let expectedCash;try{const next=saveDayClosing(state,ui.day,{card:values[0],cash:values[1],bank:values[2],info:f.elements.info.value,actualCash:'',note:'',status:'draft'});expectedCash=next.closings[ui.day].expectedCash;}catch{expectedCash=currentCash;}
+ let expectedCash;try{const next=saveDayClosing(state,ui.day,{card:values[0],cash:values[1],bank:values[2],infoCard:f.elements.infoCard.value,infoBank:f.elements.infoBank.value,actualCash:'',note:'',status:'draft'});expectedCash=next.closings[ui.day].expectedCash;}catch{expectedCash=currentCash;}
  $('#closing-expected').textContent=money(expectedCash)+'원';$('#closing-difference').textContent=f.elements.actualCash.value===''||expectedCash==null?'미입력':money(Number(f.elements.actualCash.value)-expectedCash)+'원';
 });
 

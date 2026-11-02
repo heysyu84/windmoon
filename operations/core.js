@@ -150,45 +150,79 @@ export function parseStored(raw){
  if(value?.version!==1||!Array.isArray(value.entries)||!Array.isArray(value.payroll)||!value.openingBalances||!ACCOUNTS.every(a=>Number.isSafeInteger(value.openingBalances[a.id])))throw new Error('저장 형식을 확인할 수 없습니다.');
  value.entries.forEach(validateEntry);
  for(const p of value.payroll){if(!Number.isSafeInteger(p.amount)||p.amount<=0||!Array.isArray(p.payments))throw new Error('급여 자료를 확인할 수 없습니다.');validateEntry({...p,type:'expense',title:p.employee});}
- return value;
+ return migrateSalesChannels(value);
 }
 
 export function makeEmpty(today=localDate()){
- return {version:1,demoDate:today,openingDate:today.slice(0,7)+'-01',openingBalances:{cash:0,bank:0},entries:[],payroll:[],closings:{},customCategories:[],vendors:[],staffUrl:STAFF_URL};
+ return {version:1,salesChannelsVersion:2,demoDate:today,openingDate:today.slice(0,7)+'-01',openingBalances:{cash:0,bank:0},entries:[],payroll:[],closings:{},customCategories:[],vendors:[],staffUrl:STAFF_URL};
 }
 export const dayClosed=(state,date)=>state.closings?.[date]?.status==='closed';
 export const infoSaleId=date=>'closing:'+date+':info';
-export const isInfoTerminalSale=entry=>entry?.id===infoSaleId(entry.businessDate);
-export function infoSaleAmount(state,date){return state.entries.find(e=>e.id===infoSaleId(date))?.amount??Number(state.closings?.[date]?.info||0);}
-// Treat legacy info fields as separate sales until a dedicated sale entry is saved.
+export const infoCardSaleId=date=>'closing:'+date+':info-card';
+// The original info ID is retained for bank transfers so existing receipt links stay valid.
+export function saleChannel(entry){
+ if(entry?.id===infoSaleId(entry.businessDate))return 'infoBank';
+ if(entry?.id===infoCardSaleId(entry.businessDate))return 'infoCard';
+ if(entry?.saleLocation==='info')return entry.method==='card'?'infoCard':'infoBank';
+ return entry?.method;
+}
+export const isInfoSale=entry=>['infoCard','infoBank'].includes(saleChannel(entry));
+export const isInfoTerminalSale=entry=>saleChannel(entry)==='infoCard';
+export const saleMethodName=entry=>entry.type==='sale'?({card:'점포 카드',cash:'점포 현금',bank:'점포 계좌이체',infoCard:'인포 단말기',infoBank:'인포 계좌이체'}[saleChannel(entry)]||'기타'):({card:'카드',cash:'현금',bank:'계좌이체'}[entry.method]||'—');
+export function infoSales(state,date){
+ const amounts={card:0,bank:0};
+ for(const entry of state.entries)if(entry.type==='sale'&&entry.businessDate===date){const channel=saleChannel(entry);if(channel==='infoCard')amounts.card+=entry.amount;if(channel==='infoBank')amounts.bank+=entry.amount;}
+ if(!state.entries.some(e=>e.id===infoSaleId(date)))amounts.bank+=Number(state.closings?.[date]?.info||0);
+ return {...amounts,total:amounts.card+amounts.bank};
+}
+export const infoSaleAmount=(state,date)=>infoSales(state,date).total;
+// Read-only support for backups that held info bank transfers only in the closing object.
 export function legacyInfoSales(state,range){
  return Object.entries(state.closings||{}).filter(([date,closing])=>inRange(date,range)&&Number(closing?.info)>0&&!state.entries.some(e=>e.id===infoSaleId(date))).reduce((n,[,closing])=>n+Number(closing.info),0);
 }
-export function dailySales(state,date){return Object.fromEntries(['card','cash','bank'].map(method=>[method,state.entries.filter(e=>e.type==='sale'&&e.businessDate===date&&e.method===method&&!isInfoTerminalSale(e)).reduce((n,e)=>n+e.amount,0)]));}
+export function dailySales(state,date){return Object.fromEntries(['card','cash','bank'].map(method=>[method,state.entries.filter(e=>e.type==='sale'&&e.businessDate===date&&saleChannel(e)===method).reduce((n,e)=>n+e.amount,0)]));}
+export function migrateSalesChannels(state){
+ if(state.salesChannelsVersion===2)return state;
+ const entries=state.entries.map(entry=>{
+  if(entry.type!=='sale')return entry;
+  if(entry.id===infoSaleId(entry.businessDate)||(entry.id!==infoCardSaleId(entry.businessDate)&&entry.saleLocation===undefined&&entry.category==='인포 단말기 매출'))return {...entry,method:'bank',saleLocation:'info',title:entry.title==='인포 단말기 매출 · 일마감'?'인포 계좌이체 매출 · 일마감':entry.title,category:'인포 계좌이체 매출',partner:entry.partner==='인포 단말기'?'인포':entry.partner,note:entry.note==='일반 카드 단말기 매출과 구분해 일매출에 별도 합산'?'점포 매출과 구분하여 일매출에 합산':entry.note};
+  if(entry.id===`closing:${entry.businessDate}:${entry.method}`&&['카드 매출 · 일마감','현금 매출 · 일마감','이체 매출 · 일마감'].includes(entry.title))return {...entry,title:'점포 '+entry.title.replace(/^이체 /,'계좌이체 ')};
+  return entry;
+ });
+ const closings={...state.closings};
+ for(const [date,closing] of Object.entries(closings))if(Number(closing.info)>0){
+  if(!entries.some(entry=>entry.id===infoSaleId(date)))entries.push({id:infoSaleId(date),type:'sale',title:'인포 계좌이체 매출 · 일마감',businessDate:date,category:'인포 계좌이체 매출',method:'bank',saleLocation:'info',partner:'인포',note:'과거 일마감 자료',amount:Number(closing.info),payments:[],closingDate:date});
+  closings[date]={...closing,info:0};
+ }
+ return {...state,salesChannelsVersion:2,entries,closings};
+}
 export function saveDayClosing(state,date,input){
+ if(Object.hasOwn(input,'info'))throw Error('매출 입력 항목이 변경되었습니다. 새로고침 후 다시 입력해 주세요.');
+ state=migrateSalesChannels(state);
  if(dayClosed(state,date))throw Error('마감된 영업일입니다. 먼저 마감을 다시 열어 주세요.');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw Error('영업일을 확인해 주세요.');
  const entries=[...state.entries],now=new Date().toISOString();
  for(const method of ['card','cash','bank']){
   const total=Number(input[method]);if(!Number.isSafeInteger(total)||total<0||total>99999999999)throw Error('매출은 0원 이상의 정수로 입력해 주세요.');
-  const manual=entries.filter(e=>e.type==='sale'&&e.businessDate===date&&e.method===method&&e.closingDate!==date&&!isInfoTerminalSale(e)).reduce((n,e)=>n+e.amount,0);
+  const manual=entries.filter(e=>e.type==='sale'&&e.businessDate===date&&saleChannel(e)===method&&e.closingDate!==date&&e.id!==`closing:${date}:${method}`).reduce((n,e)=>n+e.amount,0);
   if(total<manual)throw Error(({card:'카드',cash:'현금',bank:'이체'}[method])+' 매출은 이미 등록된 개별 매출 '+manual.toLocaleString('ko-KR')+'원 이상이어야 합니다. 개별 거래를 먼저 수정해 주세요.');
   const amount=total-manual,id=`closing:${date}:${method}`,index=entries.findIndex(e=>e.id===id),old=index<0?null:entries[index];
   if(!amount){if(old&&old.payments.some(p=>p.kind!=='closing'))throw Error('정산 기록이 있는 일마감 매출은 상세에서 입출금을 먼저 정리해 주세요.');if(index>=0)entries.splice(index,1);continue;}
   const payments=method==='card'?(old?.payments||[]):old?.payments.some(p=>p.kind!=='closing')?old.payments:[{id:'settle:'+id,date,amount,accountId:method==='cash'?'cash':'bank',fee:0,kind:'closing'}];
-  const record={id,type:'sale',title:({card:'카드',cash:'현금',bank:'이체'}[method])+' 매출 · 일마감',businessDate:date,category:'일마감 매출',method,partner:'일마감',note:'영업일 합계 중 개별 매출을 제외한 금액',amount,payments,closingDate:date};
+  const record={id,type:'sale',title:'점포 '+({card:'카드',cash:'현금',bank:'계좌이체'}[method])+' 매출 · 일마감',businessDate:date,category:'일마감 매출',method,partner:'일마감',note:'영업일 합계 중 개별 매출을 제외한 금액',amount,payments,closingDate:date};
   validateEntry(record);if(index<0)entries.push(record);else entries[index]=record;
  }
- const info=Number(input.info??0);
- if(!Number.isSafeInteger(info)||info<0||info>99999999999)throw Error('인포 단말기 매출은 0원 이상의 정수로 입력해 주세요.');
- const infoId=infoSaleId(date),infoIndex=entries.findIndex(e=>e.id===infoId),oldInfo=infoIndex>=0?entries[infoIndex]:null;
- if(info===0){
-  if(oldInfo?.payments?.length)throw Error('정산 입금 기록이 있는 인포 단말기 매출은 입금 내역을 먼저 확인해 주세요.');
-  if(infoIndex>=0)entries.splice(infoIndex,1);
- }else{
-  const record={id:infoId,type:'sale',title:'인포 단말기 매출 · 일마감',businessDate:date,category:'인포 단말기 매출',method:'card',partner:'인포 단말기',note:'일반 카드 단말기 매출과 구분해 일매출에 별도 합산',amount:info,payments:oldInfo?.payments||[],closingDate:date};
-  validateEntry(record);
-  if(infoIndex>=0)entries[infoIndex]=record;else entries.push(record);
+ for(const [channel,method,label,id] of [['infoCard','card','인포 단말기 매출',infoCardSaleId(date)],['infoBank','bank','인포 계좌이체 매출',infoSaleId(date)]]){
+  const total=Number(input[channel]??0);
+  if(!Number.isSafeInteger(total)||total<0||total>99999999999)throw Error(label+'은 0원 이상의 정수로 입력해 주세요.');
+  const manual=entries.filter(e=>e.type==='sale'&&e.businessDate===date&&saleChannel(e)===channel&&e.closingDate!==date&&e.id!==id).reduce((n,e)=>n+e.amount,0);
+  if(total<manual)throw Error(label+'은 이미 등록된 개별 매출 '+manual.toLocaleString('ko-KR')+'원 이상이어야 합니다.');
+  const amount=total-manual,index=entries.findIndex(e=>e.id===id),old=index>=0?entries[index]:null;
+  if(!amount){if(old?.payments?.length)throw Error('입금 기록이 있는 '+label+'은 입금 내역을 먼저 확인해 주세요.');if(index>=0)entries.splice(index,1);continue;}
+  // Converting past info sales never creates receipts. Only newly entered bank sales settle automatically.
+  const payments=method==='card'||(old&&(!(old.payments||[]).length||old.payments.some(p=>p.kind!=='closing')))?old?.payments||[]:[{id:'settle:'+id,date,amount,accountId:'bank',fee:0,kind:'closing'}];
+  const record={...old,id,type:'sale',title:label+' · 일마감',businessDate:date,category:label,method,saleLocation:'info',partner:old?.partner||'인포',note:old?.note??'점포 매출과 구분하여 일매출에 합산',amount,payments,closingDate:date};
+  validateEntry(record);if(index<0)entries.push(record);else entries[index]=record;
  }
  const actualCash=input.actualCash===''||input.actualCash==null?null:Number(input.actualCash);
  if(actualCash!==null&&(!Number.isSafeInteger(actualCash)||actualCash<0))throw Error('실제 현금은 0원 이상의 정수로 입력해 주세요.');
@@ -198,7 +232,8 @@ export function saveDayClosing(state,date,input){
 }
 export function validateWorkspace(input,previous=null){
  if(!input||input.version!==1||!Array.isArray(input.entries)||input.entries.length>20000)throw Error('장부 형식을 확인해 주세요.');
- const clone=JSON.parse(JSON.stringify(input));
+ if(previous?.salesChannelsVersion===2&&input.salesChannelsVersion!==2)throw Error('매출 입력 항목이 변경되었습니다. 새로고침 후 다시 저장해 주세요.');
+ const clone=migrateSalesChannels(JSON.parse(JSON.stringify(input)));
  if(!clone.openingBalances||!ACCOUNTS.every(a=>Number.isSafeInteger(clone.openingBalances[a.id])&&Math.abs(clone.openingBalances[a.id])<=1000000000000))throw Error('기초 잔액을 확인해 주세요.');
  const ids=new Set(),pids=new Set();
  for(const e of clone.entries){
@@ -206,6 +241,8 @@ export function validateWorkspace(input,previous=null){
   if(typeof e.id!=='string'||!e.id||e.id.length>150||ids.has(e.id))throw Error('거래 번호가 올바르지 않거나 중복됐습니다.');ids.add(e.id);
   for(const field of ['title','category','partner','note'])if(typeof e[field]!=='string'||e[field].length>(field==='note'?1000:150))throw Error('거래 내용과 비고 길이를 확인해 주세요.');
   if(e.type!=='transfer'&&!['card','cash','bank'].includes(e.method))throw Error('결제수단을 확인해 주세요.');
+  if(e.saleLocation!==undefined&&!['info','store'].includes(e.saleLocation))throw Error('매출 구역을 확인해 주세요.');
+  if(e.type==='sale'&&isInfoSale(e)&&(saleChannel(e)==='infoCard'?e.method!=='card':e.method!=='bank'))throw Error('인포 단말기는 카드, 인포 계좌이체는 계좌이체로 입력해 주세요.');
   if((e.payments||[]).length>500)throw Error('입출금 기록이 너무 많습니다.');
   for(const p of e.payments||[]){if(typeof p.id!=='string'||!p.id||p.id.length>200||pids.has(p.id))throw Error('입출금 기록 번호가 중복됐습니다.');pids.add(p.id);}
  }
@@ -231,6 +268,6 @@ export function validateWorkspace(input,previous=null){
  if(clone.vendors!==undefined&&!Array.isArray(clone.vendors))throw Error('고정 거래처 목록을 확인해 주세요.');
  const vendors=clone.vendors||[];
  if(vendors.length>100||vendors.some(v=>typeof v!=='string'||!v.trim()||v.trim().length>60))throw Error('고정 거래처는 이름당 60자 이내, 최대 100개까지 등록할 수 있습니다.');
- return {version:1,demoDate:typeof clone.demoDate==='string'?clone.demoDate:localDate(),openingDate:clone.openingDate||'1900-01-01',openingBalances:{cash:clone.openingBalances.cash,bank:clone.openingBalances.bank},entries:clone.entries,payroll:[],closings,customCategories:[...new Set(categories.map(c=>c.trim()).filter(Boolean))],vendors:[...new Set(vendors.map(v=>v.trim()))],staffUrl:STAFF_URL};
+ return {version:1,salesChannelsVersion:2,...(previous?.salesChannelsMigration?{salesChannelsMigration:previous.salesChannelsMigration}:{}),demoDate:typeof clone.demoDate==='string'?clone.demoDate:localDate(),openingDate:clone.openingDate||'1900-01-01',openingBalances:{cash:clone.openingBalances.cash,bank:clone.openingBalances.bank},entries:clone.entries,payroll:[],closings,customCategories:[...new Set(categories.map(c=>c.trim()).filter(Boolean))],vendors:[...new Set(vendors.map(v=>v.trim()))],staffUrl:STAFF_URL};
 }
 
