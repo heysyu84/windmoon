@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'">
+<title>WINDMOON · PDF 내보내기 진단</title>
+<style>
+html,body{margin:0;height:100%;font-family:system-ui,-apple-system,'Malgun Gothic',sans-serif;color:#162b26;background:#f4f6f4}*{box-sizing:border-box}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #d8e2dc;box-shadow:0 1px 5px #0001}
+header strong{font-size:15px}header p{margin:0;flex:1;min-width:240px;font-size:12px;line-height:1.5;color:#4f615a}
+button{appearance:none;padding:10px 13px;background:#203c34;color:white;border:0;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px}
+button.secondary{background:#edf1ee;color:#203c34;border:1px solid #d3dfd7}
+#state{padding:5px 10px;border-radius:5px;background:#f0f2f1;font-size:12px;color:#50645b}
+iframe{display:block;width:100%;height:calc(100dvh - 110px);min-height:380px;border:0;background:white}
+#log{position:fixed;z-index:2147483647;right:10px;bottom:10px;width:min(520px,95vw);max-height:35vh;overflow:auto;border:1px solid #b0bfb6;background:#fff;color:#1d2824;box-shadow:0 4px 16px #0003;padding:12px;border-radius:9px;font-size:11px;white-space:pre-wrap;display:none}
+#log.visible{display:block}
+@media(max-width:700px){header{padding:8px;gap:7px}header p{flex-basis:100%}iframe{height:calc(100dvh - 140px)}}
+</style>
+<script src="./debug-page.js?v=20261104-pdf-diagnosis-1" defer></script>
+</head>
+<body>
+<header>
+<strong>PDF 내보내기 진단</strong>
+<p>아래 직원관리에서 PDF를 처음 한 번 눌러 보세요. 로그인 화면으로 이동해도 위 진단 버튼은 그대로 남습니다. 진단은 브라우저에서만 기록됩니다.</p>
+<span id="state">진단 연결 대기</span>
+<button id="copy-log" type="button">PDF 진단 복사</button>
+<button id="show-log" type="button" class="secondary">기록 보기</button>
+<button id="reload-frame" type="button" class="secondary">직원관리 다시 열기</button>
+</header>
+<iframe id="staff-frame" title="직원관리 PDF 내보내기 진단" src="./?wm_debug=1&wm_frame_diagnostic=1"></iframe>
+<pre id="log" aria-live="polite"></pre>
+</body>
+</html>
