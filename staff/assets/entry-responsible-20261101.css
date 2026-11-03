@@ -1,9 +1,0 @@
-
-/* Saved responsibility from historical shifts (separate from new-shift default). */
-.entry-responsible-summary{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:-7px 0 18px;padding:10px 14px;border:1px solid #dce5dc;border-radius:8px;background:#f3f7f2;color:#728476;font-size:12px}
-.entry-responsible-summary strong{font-size:14px;font-weight:650;color:#2d503b}
-.entry-responsible-summary small{flex-basis:100%;font-size:12px;line-height:1.5;color:#738675}
-.entry-saved-responsible{display:block;margin-top:5px;color:#70856c;font-size:12px;font-weight:500;line-height:1.4;white-space:nowrap}
-.entry-responsible-change{color:#b16c36;font-weight:650}
-
-.history-inline-edit{display:inline-flex;align-items:center;justify-content:center;margin-left:2px;padding:3px 7px;border:1px solid #dce5dc;border-radius:5px;color:#638070;background:#f7faf7;font-size:11px;font-weight:600;line-height:1.3;white-space:nowrap}.history-inline-edit:hover{background:#e9f0e9;color:#345c44}

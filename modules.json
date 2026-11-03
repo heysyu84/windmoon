@@ -1,21 +1,12 @@
 [
   {
     "id": "staff",
-    "name": "직원관리",
-    "english": "STAFF",
-    "description": "근무 입력부터 직원 정보, 급여 정산과 지급 기록까지.",
+    "name": "워크스페이스",
+    "english": "WORKSPACE",
+    "description": "직원·근무·급여와 매출·지출·자금 흐름을 함께 관리하세요.",
     "group": "매장 운영",
     "icon": "users",
-    "href": "staff/"
-  },
-  {
-    "id": "operations",
-    "name": "운영관리",
-    "english": "OPERATIONS",
-    "description": "일마감, 매출과 지출, 인건비와 자금 흐름을 함께.",
-    "group": "매장 운영",
-    "icon": "wallet",
-    "href": "operations/"
+    "href": "staff/#ops-overview"
   },
   {
     "id": "menu",
@@ -45,3 +36,4 @@
     "href": "recipes/"
   }
 ]
+

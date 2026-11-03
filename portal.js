@@ -4,7 +4,7 @@ const icon=(name,size=22)=>`<svg viewBox="0 0 24 24" width="${size}" height="${s
 const container=document.querySelector('#modules');let modules=[];
 const appHref = m => m.href;
 document.querySelector('#today').textContent=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'short'}).format(new Date());
-const labels={staff:'근무 · 직원 정보 · 급여 정산',operations:'일마감 · 매출 · 지출',menu:'A3 메뉴판 편집',cards:'명함 디자인 · 내보내기',recipes:'제조법 · 재료 · 즐겨찾기'};
+const labels={staff:'직원 · 근무 · 급여 · 매출 · 지출',operations:'일마감 · 매출 · 지출',menu:'A3 메뉴판 편집',cards:'명함 디자인 · 내보내기',recipes:'제조법 · 재료 · 즐겨찾기'};
 function render(query=''){
  const matching=modules.filter(m=>[m.name,m.english,m.description,m.group].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
  const arrow='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
@@ -17,4 +17,5 @@ try{
 document.querySelector('#module-search').addEventListener('input',event=>render(event.target.value));
 document.addEventListener('click',event=>{const link=event.target.closest('[data-module]');if(link)try{localStorage.setItem('windmoon-suite-last-module',link.dataset.module);}catch{}});
 document.addEventListener('keydown',event=>{if(event.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){event.preventDefault();document.querySelector('#module-search').focus();}});
+
 

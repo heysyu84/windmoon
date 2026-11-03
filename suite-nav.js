@@ -30,11 +30,11 @@ const paths = {
   recipes:'<path d="m3 3 9 10L21 3ZM12 13v8m-5 0h10M6 6h12"/>'
 };
 const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`;
-const modules = [['home','홈'],['staff','직원관리'],['operations','운영관리'],['menu','메뉴판 편집'],['cards','명함 편집'],['recipes','바 레시피']];
+const modules = [['home','홈'],['staff','워크스페이스'],['menu','메뉴판 편집'],['cards','명함 편집'],['recipes','바 레시피']];
 const nav = document.createElement('aside');
 nav.className='wm-suite-sidebar';
 nav.setAttribute('aria-label','풍월 업무공간');
-nav.innerHTML = `<a class="wm-suite-brand" href="${root}" aria-label="WIND MOON 홈"><picture><source media="(max-width:900px)" srcset="${new URL('brand/workspace-mark.svg',root)}"><img src="${new URL('brand/workspace-menu-a-400-600.svg',root)}" alt="WINDMOON Workspace" width="600" height="320"></picture><span>통합 업무공간</span></a><span class="wm-nav-label">WORKSPACE</span><nav class="wm-suite-links" aria-label="프로그램">${modules.map(([id,label],i)=>`${i===3?'<span class="wm-nav-label wm-tools-label">STUDIO & TOOLS</span>':''}<a class="wm-suite-link${page===id?' is-active':''}" href="${suiteModuleHref(id)}" target="_top" data-wm-module="${id}" title="${label}"${page===id?' aria-current="page"':''}>${icon(id)}<span>${label}</span><i></i></a>`).join('')}</nav><a class="wm-suite-account" href="${root}" aria-label="풍월 업무공간 홈"><span class="wm-avatar">WM</span><span>풍월<small>LOUNGE & CLUB</small></span>${icon('home')}</a>`;
+nav.innerHTML = `<a class="wm-suite-brand" href="${root}" aria-label="WIND MOON 홈"><picture><source media="(max-width:900px)" srcset="${new URL('brand/workspace-mark.svg',root)}"><img src="${new URL('brand/workspace-menu-a-400-600.svg',root)}" alt="WINDMOON Workspace" width="600" height="320"></picture><span>통합 업무공간</span></a><span class="wm-nav-label">WORKSPACE</span><nav class="wm-suite-links" aria-label="프로그램">${modules.map(([id,label],i)=>`${i===2?'<span class="wm-nav-label wm-tools-label">STUDIO & TOOLS</span>':''}<a class="wm-suite-link${page===id?' is-active':''}" href="${suiteModuleHref(id)}" target="_top" data-wm-module="${id}" title="${label}"${page===id?' aria-current="page"':''}>${icon(id)}<span>${label}</span><i></i></a>`).join('')}</nav><a class="wm-suite-account" href="${root}" aria-label="풍월 업무공간 홈"><span class="wm-avatar">WM</span><span>풍월<small>LOUNGE & CLUB</small></span>${icon('home')}</a>`;
 document.body.prepend(nav);
 for(const anchor of document.querySelectorAll('[data-wm-home]')) {
   anchor.href=root; anchor.innerHTML=`${icon('home')}<span>홈으로</span>`;
@@ -43,4 +43,5 @@ document.addEventListener('click',event=>{
   const link=event.target.closest('[data-wm-module]');
   if(link && link.dataset.wmModule!=='home')try{localStorage.setItem('windmoon-suite-last-module',link.dataset.wmModule);}catch{}
 });
+
 

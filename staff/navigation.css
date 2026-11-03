@@ -1,0 +1,63 @@
+/* One navigation geometry shared by the home, editors, staff and operations. */
+:root{--wm-nav-width:228px;--wm-nav-top:37px;--wm-nav-side:18px;--wm-nav-bottom:20px;--wm-nav-row:48.5px;--wm-nav-font:15px;--wm-nav-background:#172b27;--wm-nav-text:#c3ceca}
+html body :is([data-wm-nav],.wm-suite-sidebar){box-sizing:border-box;position:fixed;inset:0 auto 0 0;width:var(--wm-nav-width);min-width:var(--wm-nav-width);padding:var(--wm-nav-top) var(--wm-nav-side) var(--wm-nav-bottom);display:flex;flex-direction:column;background:var(--wm-nav-background);color:var(--wm-nav-text);font-family:WMNavigation,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:var(--wm-nav-font);line-height:1.5;letter-spacing:0;overflow-y:auto;scrollbar-width:thin;scrollbar-gutter:stable;z-index:80}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.brand,.wm-suite-brand){box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;margin:0;padding:0 1px 32px;text-decoration:none;flex-shrink:0}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.brand-logo,.wm-suite-brand picture){display:block;width:100%;max-width:none;margin:0;filter:brightness(0) saturate(100%) invert(78%) sepia(24%) saturate(506%) hue-rotate(1deg) brightness(94%) contrast(88%)}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.brand-logo,.wm-suite-brand picture) img{display:block;width:100%;height:auto;max-height:none;margin:0;filter:none;opacity:1;object-fit:contain}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.brand-caption,.wm-suite-brand>span){display:block;font-size:13px;font-weight:400;line-height:19.5px;letter-spacing:1.3px;color:#97aaa3;margin:0}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-label,.nav-caption,.wm-nav-label){box-sizing:border-box;display:block;font-size:11px;font-weight:400;line-height:16.5px;letter-spacing:1.8px;color:#779086;padding:0 17px 18px;margin:0}
+html body :is([data-wm-nav],.wm-suite-sidebar) .wm-tools-label{margin-top:26px;padding-bottom:10px}
+html body :is([data-wm-nav],.wm-suite-sidebar) nav{width:100%}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-item,.wm-suite-link){box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;gap:13px;width:100%;height:var(--wm-nav-row);min-height:var(--wm-nav-row);margin:0 0 5px;padding:13px 16px;border:0;border-radius:8px;background:transparent;color:inherit;font-family:inherit;font-size:var(--wm-nav-font);font-weight:400;line-height:22.5px;letter-spacing:.1px;text-align:left;text-decoration:none;white-space:nowrap;flex-shrink:0}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-item,.wm-suite-link)>svg,html body :is([data-wm-nav],.wm-suite-sidebar) .nav-icon{width:19px;height:19px;min-width:19px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-icon svg,.nav-item>svg,.wm-suite-link>svg){width:19px;height:19px;stroke-width:1.55;color:#8da69a}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-item,.wm-suite-link):hover{background:#ffffff08;color:#fff}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-item.active,.wm-suite-link.is-active){background:#ffffff0d;color:#f0eee6}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-item.active,.wm-suite-link.is-active) svg{color:#c8ae7b}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-dot,.wm-suite-link.is-active i){display:block;width:5px;height:5px;min-width:5px;border-radius:50%;margin-left:auto;background:#c8ae7b;flex:none}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.sidebar-bottom,.wm-suite-account){margin-top:auto}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.owner,.wm-suite-account){box-sizing:border-box;display:flex;align-items:center;gap:11px;font-size:14px;line-height:21px;color:#e3e9e4}
+html body :is([data-wm-nav],.wm-suite-sidebar) :is(.avatar,.wm-avatar){box-sizing:border-box;display:grid;place-items:center;width:34px;height:34px;min-width:34px;border:1px solid #ffffff13;background:#ffffff09;border-radius:50%;color:#c8ae7b;font-size:12px;font-weight:400;line-height:1;letter-spacing:1px}
+html body .main-area,html body .shell{margin-left:var(--wm-nav-width)}
+body[data-suite-page]{padding-left:var(--wm-nav-width)}
+@media(min-width:1500px){:root{--wm-nav-width:244px}}
+@media(max-width:1200px){:root{--wm-nav-width:195px;--wm-nav-side:12px}}
+@media(max-width:900px){:root{--wm-nav-width:74px;--wm-nav-top:25px;--wm-nav-side:10px;--wm-nav-bottom:25px}
+ html body :is([data-wm-nav],.wm-suite-sidebar) :is(.brand,.wm-suite-brand){padding:0 1px 30px;gap:0}
+ html body :is([data-wm-nav],.wm-suite-sidebar) :is(.brand-logo,.wm-suite-brand picture){width:52px}
+ html body :is([data-wm-nav],.wm-suite-sidebar) :is(.brand-caption,.wm-suite-brand>span,.nav-label,.nav-caption,.wm-nav-label){display:none}
+ html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-item,.wm-suite-link){justify-content:center;gap:0;padding:15px 5px}
+ html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-item,.wm-suite-link)>span:not(.nav-icon),html body :is([data-wm-nav],.wm-suite-sidebar) :is(.nav-dot,.wm-suite-link i){display:none!important}
+}
+@media(max-width:640px){:root{--wm-nav-width:0px}
+ html body :is([data-wm-nav],.wm-suite-sidebar).wm-suite-sidebar{inset:auto 0 0;width:100%;min-width:0;height:calc(67px + env(safe-area-inset-bottom));padding:5px 5px calc(5px + env(safe-area-inset-bottom));overflow:visible}
+ html body :is([data-wm-nav],.wm-suite-sidebar).wm-suite-sidebar :is(.wm-suite-brand,.wm-suite-account){display:none}
+ html body :is([data-wm-nav],.wm-suite-sidebar).wm-suite-sidebar .wm-suite-links{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;height:100%;overflow:visible}
+ html body :is([data-wm-nav],.wm-suite-sidebar).wm-suite-sidebar .wm-suite-link{flex-direction:column;justify-content:center;gap:5px;width:100%;height:auto;min-height:0;margin:0;padding:7px 0 5px;border-radius:7px;font-size:9px;line-height:13.5px}
+ html body :is([data-wm-nav],.wm-suite-sidebar).wm-suite-sidebar .wm-suite-link>span{display:block!important;font-size:9px;line-height:13.5px}
+ html body :is([data-wm-nav],.wm-suite-sidebar).wm-suite-sidebar .wm-suite-link>svg{width:18px;height:18px}
+ html body :is([data-wm-nav],.wm-suite-sidebar).sidebar{width:100%;min-width:0;height:65px;inset:auto 0 0;padding:0 9px;flex-direction:row;overflow:visible;z-index:50}
+ html body :is([data-wm-nav],.wm-suite-sidebar).sidebar .brand,html body :is([data-wm-nav],.wm-suite-sidebar).sidebar .sidebar-bottom{display:none}
+ html body :is([data-wm-nav],.wm-suite-sidebar).sidebar nav{display:flex;justify-content:space-around;width:100%}
+ html body :is([data-wm-nav],.wm-suite-sidebar).sidebar .nav-item{flex-direction:column;justify-content:center;gap:5px;width:auto;height:65px;min-height:65px;min-width:0;flex:1;margin:0;padding:8px 3px;border-radius:0;font-size:11px;line-height:16.5px;letter-spacing:0}
+ html body :is([data-wm-nav],.wm-suite-sidebar).sidebar .nav-item>span{display:block!important;font-size:11px;line-height:16.5px}
+ html body :is([data-wm-nav],.wm-suite-sidebar).sidebar .nav-item .nav-dot{display:none!important}
+ html body :is([data-wm-nav],.wm-suite-sidebar).sidebar .nav-item.active{background:transparent;color:#f2e5c7}
+ body[data-wm-operations] :is([data-wm-nav],.wm-suite-sidebar).sidebar{display:none}
+ html body .main-area,html body .shell{margin-left:0}
+}
+@media print{html body :is([data-wm-nav],.wm-suite-sidebar){display:none!important}}
+.b4-print-layout :is([data-wm-nav],.wm-suite-sidebar){display:none!important}
+
+/* Mobile bars share the same height, padding, label and icon sizes. */
+@media(max-width:640px){
+ html body :is([data-wm-nav].sidebar,.wm-suite-sidebar,[data-wm-mobile]){height:calc(67px + env(safe-area-inset-bottom));padding:5px 5px calc(5px + env(safe-area-inset-bottom));box-sizing:border-box}
+ html body [data-wm-nav].sidebar nav{height:100%}
+ html body :is([data-wm-nav].sidebar,.wm-suite-sidebar,[data-wm-mobile]) :is(.nav-item,.wm-suite-link){height:100%;min-height:0;padding:7px 0 5px;gap:5px;font-size:10px;line-height:15px}
+ html body :is([data-wm-nav].sidebar,.wm-suite-sidebar,[data-wm-mobile]) :is(.nav-item,.wm-suite-link)>span{font-size:10px;line-height:15px}
+ html body :is([data-wm-nav].sidebar,.wm-suite-sidebar,[data-wm-mobile]) :is(.nav-item,.wm-suite-link)>svg{width:19px;height:19px}
+ html body .main-area{padding-bottom:calc(67px + env(safe-area-inset-bottom))}
+ html body [data-wm-mobile]{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+@media(max-width:640px){html body [data-wm-mobile]{font-family:WMNavigation,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;line-height:15px}}
