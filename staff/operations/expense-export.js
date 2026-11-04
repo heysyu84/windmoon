@@ -1,6 +1,6 @@
 // Standalone dependency-free PDF renderer for Windmoon expense registers.
 // Canvas is used so Korean text and the report logo render consistently across PDF viewers.
-const W=595.28,H=841.89,M=36,AREA=W-2*M,SCALE=3;
+const W=595.28,H=841.89,M=36,AREA=W-2*M,SCALE=2;
 const palette={ink:'#233c30',muted:'#748575',pale:'#f1f5ef',line:'#dce5d9',white:'#ffffff',red:'#a65d48'};
 const fmt=n=>new Intl.NumberFormat('ko-KR').format(Number(n)||0);
 const str=x=>String(x??'');
@@ -66,66 +66,81 @@ function drawRow(ctx,report,columns,row,y,index){
  });
  ctx.strokeStyle=palette.line;ctx.lineWidth=.3;ctx.beginPath();ctx.moveTo(M,y+29);ctx.lineTo(W-M,y+29);ctx.stroke();
 }
-function buildPages(report,logo){
- const pages=[],columns=columnsFor(report);
- const title=report.mode==='personal'?'개인카드 대납 정산 내역서':report.mode==='sales'?'매출관리 내보내기':'지출관리 내보내기';
- let page=newPage(logo,title,periodText(report),1),ctx=page.ctx;
- text(ctx,report.mode==='personal'?'미정산 거래는 조회 월과 관계없이 누적합니다.':report.mode==='sales'?'일마감과 동일한 매출 구분 · 환불은 음수 · 단위: 원':'조회 기간의 등록 지출 · 정산 기준 / 단위: 원',M,133,9,{color:palette.muted});
- drawCards(ctx,report.mode==='personal'?
-  [{label:'누적 대납금',value:report.total},{label:'정산 완료액',value:report.settled},{label:'미정산 대납금',value:report.outstanding}]:
-  report.mode==='sales'?[{label:'매출 (환불 반영)',value:report.total},{label:'입금·환불 기록',value:report.settled},{label:'미수 매출',value:report.outstanding}]:
-  [{label:'선택 기간 지출액',value:report.total},{label:'지급 기록액',value:report.settled},{label:'미지급액',value:report.outstanding}],153);
- text(ctx,'거래별 상세 내역',M,252,12,{bold:true});
- let y=drawTableHead(ctx,columns,265),count=0;
- const rows=report.rows||[];
- if(!rows.length)text(ctx,'조회된 지출 내역이 없습니다.',M+8,y+25,10,{color:palette.muted});
- for(const row of rows){
-  if(y+34>H-74){pages.push(page);page=newPage(logo,title,periodText(report),pages.length+1);ctx=page.ctx;y=drawTableHead(ctx,columns,129);count=0;}
-  drawRow(ctx,report,columns,row,y,count++);y+=30;
- }
- pages.push(page);
- for(const [i,p] of pages.entries()){
-  rule(p.ctx,H-45);
-  text(p.ctx,'WINDMOON Workspace  ·  '+(report.demo?'예시 자료':'실제 장부'),M,H-29,8,{color:palette.muted});
-  text(p.ctx,(i+1)+' / '+pages.length,W-M,H-29,8,{right:true,color:palette.muted});
- }
- return pages.map(p=>p.canvas);
+// Render and release each page before drawing the next. Previously an entire month's
+// A4 canvas array (up to 18MB/page) and base64 JPEG copies stayed in memory.
+function paginate(rows){
+ const first=15,remaining=19,groups=[rows.slice(0,first)];
+ for(let i=first;i<rows.length;i+=remaining)groups.push(rows.slice(i,i+remaining));
+ return groups;
 }
-function fromBase64(input){
- const raw=atob(input);const result=new Uint8Array(raw.length);
- for(let i=0;i<raw.length;i++)result[i]=raw.charCodeAt(i);
- return result;
+async function jpegBytes(canvas){
+ if(typeof canvas.toBlob==='function'){
+  const blob=await new Promise((resolve,reject)=>{
+   try{canvas.toBlob(value=>value?resolve(value):reject(Error('PDF 페이지 이미지를 생성하지 못했습니다.')),'image/jpeg',.86);}
+   catch(error){reject(error);}
+  });
+  return new Uint8Array(await blob.arrayBuffer());
+ }
+ // Older browser fallback; avoid base64 for current browsers.
+ const data=canvas.toDataURL('image/jpeg',.86).split(',')[1],raw=atob(data),bytes=new Uint8Array(raw.length);
+ for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+ return bytes;
 }
-function pdfFromCanvases(canvases){
+async function renderPdfImages(report,logo){
+ const columns=columnsFor(report),title=report.mode==='personal'?'개인카드 대납 정산 내역서':report.mode==='sales'?'매출관리 내보내기':'지출관리 내보내기';
+ const groups=paginate(report.rows||[]),images=[];
+ for(let i=0;i<groups.length;i++){
+  const page=newPage(logo,title,periodText(report),i+1),ctx=page.ctx,firstPage=i===0;
+  if(firstPage){
+   text(ctx,report.mode==='personal'?'미정산 거래는 조회 월과 관계없이 누적합니다.':report.mode==='sales'?'일마감과 동일한 매출 구분 · 환불은 음수 · 단위: 원':'조회 기간의 등록 지출 · 정산 기준 / 단위: 원',M,133,9,{color:palette.muted});
+   drawCards(ctx,report.mode==='personal'?
+    [{label:'누적 대납금',value:report.total},{label:'정산 완료액',value:report.settled},{label:'미정산 대납금',value:report.outstanding}]:
+    report.mode==='sales'?[{label:'매출 (환불 반영)',value:report.total},{label:'입금·환불 기록',value:report.settled},{label:'미수 매출',value:report.outstanding}]:
+    [{label:'선택 기간 지출액',value:report.total},{label:'지급 기록액',value:report.settled},{label:'미지급액',value:report.outstanding}],153);
+   text(ctx,'거래별 상세 내역',M,252,12,{bold:true});
+  }
+  let y=drawTableHead(ctx,columns,firstPage?265:129);
+  if(firstPage&&!groups[i].length)text(ctx,'조회된 거래 내역이 없습니다.',M+8,y+25,10,{color:palette.muted});
+  for(const [index,row] of groups[i].entries()){drawRow(ctx,report,columns,row,y,index);y+=30;}
+  rule(ctx,H-45);
+  text(ctx,'WINDMOON Workspace  ·  '+(report.demo?'예시 자료':'실제 장부'),M,H-29,8,{color:palette.muted});
+  text(ctx,(i+1)+' / '+groups.length,W-M,H-29,8,{right:true,color:palette.muted});
+  const image=await jpegBytes(page.canvas);
+  images.push({width:page.canvas.width,height:page.canvas.height,bytes:image});
+  // Explicitly free the large backing bitmap between pages, especially on iOS Safari.
+  page.canvas.width=1;page.canvas.height=1;
+ }
+ return images;
+}
+function pdfFromImages(images){
  const encoder=new TextEncoder(),parts=[],offsets=[0];let size=0;
  const append=data=>{const bytes=typeof data==='string'?encoder.encode(data):data;parts.push(bytes);size+=bytes.length;};
  const object=(id,data,stream)=>{
-  offsets[id]=size;append(id+' 0 obj\n');
-  append(data);
+  offsets[id]=size;append(id+' 0 obj\n');append(data);
   if(stream){append('\nstream\n');append(stream);append('\nendstream');}
   append('\nendobj\n');
  };
  append('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
  object(1,'<< /Type /Catalog /Pages 2 0 R >>');
- object(2,'<< /Type /Pages /Kids ['+canvases.map((_,i)=>(3+3*i)+' 0 R').join(' ')+'] /Count '+canvases.length+' >>');
- canvases.forEach((canvas,i)=>{
-  const id=3+i*3,content='q '+W+' 0 0 '+H+' 0 0 cm /Im0 Do Q\n',img=fromBase64(canvas.toDataURL('image/jpeg',.9).split(',')[1]);
+ object(2,'<< /Type /Pages /Kids ['+images.map((_,i)=>(3+3*i)+' 0 R').join(' ')+'] /Count '+images.length+' >>');
+ for(const [i,image] of images.entries()){
+  const id=3+i*3,content='q '+W+' 0 0 '+H+' 0 0 cm /Im0 Do Q\n';
   object(id,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /XObject << /Im0 '+(id+2)+' 0 R >> >> /Contents '+(id+1)+' 0 R >>');
   object(id+1,'<< /Length '+encoder.encode(content).length+' >>',encoder.encode(content));
-  object(id+2,'<< /Type /XObject /Subtype /Image /Width '+canvas.width+' /Height '+canvas.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>',img);
- });
- const end=size;const count=3+canvases.length*3;
+  object(id+2,'<< /Type /XObject /Subtype /Image /Width '+image.width+' /Height '+image.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+image.bytes.length+' >>',image.bytes);
+ }
+ const end=size,count=3+images.length*3;
  append('xref\n0 '+count+'\n0000000000 65535 f \n');
  for(let i=1;i<count;i++)append(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
  append('trailer\n<< /Size '+count+' /Root 1 0 R >>\nstartxref\n'+end+'\n%%EOF\n');
- const result=new Uint8Array(size);let at=0;for(const chunk of parts){result.set(chunk,at);at+=chunk.length;}return result;
+ const result=new Uint8Array(size);let at=0;for(const part of parts){result.set(part,at);at+=part.length;}return result;
 }
 export async function createExpensePdf(report){
  if(typeof document==='undefined')throw Error('PDF는 브라우저에서 생성할 수 있습니다.');
  if(document.fonts){await Promise.all([document.fonts.load('400 11px Pretendard'),document.fonts.load('600 11px Pretendard')]);}
  const logo=await loadLogo();
  const rows=(report.rows||[]).slice().sort((a,b)=>(report.mode==='personal'?(a.outstanding===0?1:0)-(b.outstanding===0?1:0):0)||b.date.localeCompare(a.date));
- return pdfFromCanvases(buildPages({...report,rows},logo));
+ return pdfFromImages(await renderPdfImages({...report,rows},logo));
 }
 export function downloadExpensePdf(bytes,name){
  const blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob),a=document.createElement('a');

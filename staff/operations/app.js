@@ -101,7 +101,7 @@ function chooseCalendarDate(field,date){
  renderPeriod();
  renderContent();
 }
-function renderContent(){if(disposed)return;const r=getRange();$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(mode==='real'&&!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'서버 장부와 급여를 연결하고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료가 연결되지 않아 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 연결해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">최신 급여 연결에 실패해 마지막으로 가져온 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{dailyOpen:!!$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'?('<div class="funds-view-switch"><span>매출 내역</span><button type="button" class="secondary-btn" data-sales-pdf="1">'+icon('arrowDown',14)+' 매출 PDF 내보내기</button></div>'+renderLedger(state,r,ui.page,ui.filters)):ui.page==='expenses'?('<div class="funds-view-switch"><span>지출 메뉴</span><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">일반 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">개인카드 대납 관리 · '+money(personalCardSummary(state).outstanding)+'원</button></div><button type="button" class="secondary-btn" data-expense-pdf="1">'+icon('arrowDown',14)+' 지출 PDF 내보내기</button></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
+function renderContent(){if(disposed)return;const r=getRange();$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(mode==='real'&&!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'서버 장부와 급여를 연결하고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료가 연결되지 않아 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 연결해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">최신 급여 연결에 실패해 마지막으로 가져온 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{dailyOpen:!!$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'?('<div class="funds-view-switch"><span>매출 내역</span><button type="button" class="secondary-btn" data-sales-pdf="1">'+icon('arrowDown',14)+' 매출 PDF 내보내기</button></div><p class="form-error" role="alert" data-sales-pdf-error></p>'+renderLedger(state,r,ui.page,ui.filters)):ui.page==='expenses'?('<div class="funds-view-switch"><span>지출 메뉴</span><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">일반 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">개인카드 대납 관리 · '+money(personalCardSummary(state).outstanding)+'원</button></div><button type="button" class="secondary-btn" data-expense-pdf="1">'+icon('arrowDown',14)+' 지출 PDF 내보내기</button></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
 function renderPage(){if(disposed)return;
  if(ui.page==='closing')ui.period='day';
  const n=NAV.find(n=>n.id===ui.page);$('#crumb').textContent=n.name;$('#page-title').textContent=n.name;$('#eyebrow').textContent=n.eyebrow;$('#page-description').textContent=n.description;$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';
@@ -131,7 +131,8 @@ function openReportExport(){
 async function exportSalesPdf(){
  if(expenseExporting)return;
  expenseExporting=true;
- const btn=$('[data-sales-pdf]'),old=btn?.textContent;
+ const btn=$('[data-sales-pdf]'),old=btn?.textContent,notice=$('[data-sales-pdf-error]');
+ if(notice)notice.textContent='';
  if(btn){btn.disabled=true;btn.textContent='PDF 준비 중…';}
  try{
   const range=getRange();
@@ -146,12 +147,12 @@ async function exportSalesPdf(){
     outstanding:(e.type==='refund'?-1:1)*outstanding(e)}));
   const total=rows.reduce((n,e)=>n+e.amount,0),settled=rows.reduce((n,e)=>n+e.settled,0),
    outstanding=rows.filter(e=>e.amount>0).reduce((n,e)=>n+Math.max(0,e.outstanding),0);
-  const exporter=await import('./expense-export.js?v=20261105-reimbursement-labels-v1');
+  const exporter=await import('./expense-export.js?v=20261105-large-pdf-fix-v1');
   const period=range.start===range.end?range.start:range.start+' ~ '+range.end;
   const bytes=await exporter.createExpensePdf({mode:'sales',period,rows,total,settled,outstanding,demo:mode==='demo'});
   exporter.downloadExpensePdf(bytes,'WINDMOON_매출관리_'+range.start+(range.start===range.end?'':'_'+range.end)+'.pdf');
   toast('매출 PDF를 저장했습니다.');
- }catch(error){toast('매출 PDF 내보내기 실패: '+(error.message||'다시 시도해 주세요.'));}
+ }catch(error){const message='매출 PDF 내보내기 실패: '+(error?.message||String(error)||'알 수 없는 오류');if(notice&&notice.isConnected)notice.textContent=message;toast(message);}
  finally{expenseExporting=false;if(btn&&btn.isConnected){btn.disabled=false;btn.textContent=old;}}
 }
 async function exportExpensePdf(){
@@ -168,7 +169,7 @@ async function exportExpensePdf(){
    amount:e.amount,settled:paidAmount(e),outstanding:outstanding(e)
   }));
   const total=rows.reduce((n,e)=>n+e.amount,0),settled=rows.reduce((n,e)=>n+e.settled,0);
-  const exporter=await import('./expense-export.js?v=20261105-reimbursement-labels-v1');
+  const exporter=await import('./expense-export.js?v=20261105-large-pdf-fix-v1');
   const bytes=await exporter.createExpensePdf({mode:personal?'personal':'expenses',period:range.start===range.end?range.start:range.start+' ~ '+range.end,rows,total,settled,outstanding:total-settled,demo:mode==='demo'});
   const label=personal?'개인카드_대납정산내역서':'지출관리_'+range.start+(range.start===range.end?'':'_'+range.end);
   exporter.downloadExpensePdf(bytes,'WINDMOON_'+label+'.pdf');
