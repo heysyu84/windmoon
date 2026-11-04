@@ -21,11 +21,11 @@ function newPage(logo,title,period,index){
  const canvas=document.createElement('canvas');canvas.width=Math.round(W*SCALE);canvas.height=Math.round(H*SCALE);
  const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw Error('PDF용 화면을 그릴 수 없습니다.');
  ctx.scale(SCALE,SCALE);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
- if(logo){const ratio=Math.min(104/logo.width,56/logo.height);const w=logo.width*ratio,h=logo.height*ratio;ctx.drawImage(logo,M,H-40-h,w,h);}
- else text(ctx,'WINDMOON',M,H-64,16,{bold:true});
- text(ctx,title,M+126,H-65,20,{bold:true});
- text(ctx,period,M+127,H-87,9,{color:palette.muted,maxWidth:AREA-132});
- rule(ctx,H-111);
+ if(logo){const ratio=Math.min(104/logo.width,56/logo.height);const w=logo.width*ratio,h=logo.height*ratio;ctx.drawImage(logo,M,18,w,h);}
+ else text(ctx,'WINDMOON',M,58,16,{bold:true});
+ text(ctx,title,M+126,52,20,{bold:true});
+ text(ctx,period,M+127,76,9,{color:palette.muted,maxWidth:AREA-132});
+ rule(ctx,106);
  return {canvas,ctx,index};
 }
 function drawCards(ctx,cards,y){
@@ -79,9 +79,9 @@ function buildPages(report,logo){
  }
  pages.push(page);
  for(const [i,p] of pages.entries()){
-  rule(p.ctx,45);
-  text(p.ctx,'WINDMOON Workspace  ·  '+(report.demo?'예시 자료':'실제 장부'),M,30,8,{color:palette.muted});
-  text(p.ctx,(i+1)+' / '+pages.length,W-M,30,8,{right:true,color:palette.muted});
+  rule(p.ctx,H-45);
+  text(p.ctx,'WINDMOON Workspace  ·  '+(report.demo?'예시 자료':'실제 장부'),M,H-29,8,{color:palette.muted});
+  text(p.ctx,(i+1)+' / '+pages.length,W-M,H-29,8,{right:true,color:palette.muted});
  }
  return pages.map(p=>p.canvas);
 }
