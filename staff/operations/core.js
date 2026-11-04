@@ -3,6 +3,7 @@ export const STORAGE_KEY = 'windmoon-operations-demo-v1';
 export const STAFF_URL='#staff';
 export const ACCOUNTS = [{id:'cash',name:'현금 시재',short:'현금',icon:'wallet'},{id:'bank',name:'운영계좌',short:'계좌',icon:'bank'}];
 export const CATEGORIES = {sale:['보틀·세트','칵테일·샷','입장료','인포 매출','기타 매출'],expense:['주류 매입','임대료','공과금','소모품','광고·홍보','식비·복리후생','기타 지출'],funding:['대표자 입금','차입금','기타 입금'],refund:['매출 환불'],transfer:['자금 이동']};
+export function expenseCategoryOptions(state){const rows=Array.isArray(state?.expenseCategories)?state.expenseCategories:[...CATEGORIES.expense,...(state?.customCategories||[]),...(state?.entries||[]).filter(e=>e.type==='expense').map(e=>e.category)];return [...new Set(rows.map(c=>String(c||'').trim()).filter(Boolean))];}
 export const TYPE_NAMES = {sale:'매출',expense:'지출',funding:'기타 입금',transfer:'자금 이동',refund:'매출 환불'};
 export function localDate(now=new Date()){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);}
 export function shiftDate(date,delta){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+delta);return d.toISOString().slice(0,10);}
@@ -261,9 +262,10 @@ export function validateWorkspace(input,previous=null){
  if(clone.openingDate&&!/^\d{4}-\d{2}-\d{2}$/.test(clone.openingDate))throw Error('기초 잔액 기준일을 확인해 주세요.');
  const categories=Array.isArray(clone.customCategories)?clone.customCategories:[];
  if(categories.length>30||categories.some(c=>typeof c!=='string'||c.length>50))throw Error('추가 분류를 확인해 주세요.');
+ if(clone.expenseCategories!==undefined){const rows=clone.expenseCategories;if(!Array.isArray(rows)||rows.length>60||rows.some(c=>typeof c!=='string'||!c.trim()||c.length>50))throw Error('지출항목 목록을 확인해 주세요.');}
  if(clone.vendors!==undefined&&!Array.isArray(clone.vendors))throw Error('고정 거래처 목록을 확인해 주세요.');
  const vendors=clone.vendors||[];
  if(vendors.length>100||vendors.some(v=>typeof v!=='string'||!v.trim()||v.trim().length>60))throw Error('고정 거래처는 이름당 60자 이내, 최대 100개까지 등록할 수 있습니다.');
- return {version:1,salesChannelsVersion:2,...(previous?.salesChannelsMigration?{salesChannelsMigration:previous.salesChannelsMigration}:{}),demoDate:typeof clone.demoDate==='string'?clone.demoDate:localDate(),openingDate:clone.openingDate||'1900-01-01',openingBalances:{cash:clone.openingBalances.cash,bank:clone.openingBalances.bank},entries:clone.entries,payroll:[],closings,customCategories:[...new Set(categories.map(c=>c.trim()).filter(Boolean))],vendors:[...new Set(vendors.map(v=>v.trim()))],staffUrl:STAFF_URL};
+ return {version:1,salesChannelsVersion:2,...(previous?.salesChannelsMigration?{salesChannelsMigration:previous.salesChannelsMigration}:{}),demoDate:typeof clone.demoDate==='string'?clone.demoDate:localDate(),openingDate:clone.openingDate||'1900-01-01',openingBalances:{cash:clone.openingBalances.cash,bank:clone.openingBalances.bank},entries:clone.entries,payroll:[],closings,customCategories:[...new Set(categories.map(c=>c.trim()).filter(Boolean))],...(clone.expenseCategories!==undefined?{expenseCategories:[...new Set(clone.expenseCategories.map(c=>c.trim()).filter(Boolean))]}:{}),vendors:[...new Set(vendors.map(v=>v.trim()))],staffUrl:STAFF_URL};
 }
 
