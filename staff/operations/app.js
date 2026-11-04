@@ -146,10 +146,10 @@ async function exportSalesPdf(){
     settled:(e.type==='refund'?-1:1)*paidAmount(e),
     outstanding:(e.type==='refund'?-1:1)*outstanding(e)}));
   const total=rows.reduce((n,e)=>n+e.amount,0),settled=rows.reduce((n,e)=>n+e.settled,0),
-   outstanding=rows.filter(e=>e.amount>0).reduce((n,e)=>n+Math.max(0,e.outstanding),0);
+   outstandingTotal=rows.filter(e=>e.amount>0).reduce((n,e)=>n+Math.max(0,e.outstanding),0);
   const exporter=await import('./expense-export.js?v=20261105-large-pdf-fix-v1');
   const period=range.start===range.end?range.start:range.start+' ~ '+range.end;
-  const bytes=await exporter.createExpensePdf({mode:'sales',period,rows,total,settled,outstanding,demo:mode==='demo'});
+  const bytes=await exporter.createExpensePdf({mode:'sales',period,rows,total,settled,outstanding:outstandingTotal,demo:mode==='demo'});
   exporter.downloadExpensePdf(bytes,'WINDMOON_매출관리_'+range.start+(range.start===range.end?'':'_'+range.end)+'.pdf');
   toast('매출 PDF를 저장했습니다.');
  }catch(error){const message='매출 PDF 내보내기 실패: '+(error?.message||String(error)||'알 수 없는 오류');if(notice&&notice.isConnected)notice.textContent=message;toast(message);}
