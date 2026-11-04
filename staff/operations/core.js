@@ -2,6 +2,17 @@ export const STORAGE_KEY = 'windmoon-operations-demo-v1';
 // This module is shared with the Worker. Resolve browser paths only in a browser.
 export const STAFF_URL='#staff';
 export const ACCOUNTS = [{id:'cash',name:'현금 시재',short:'현금',icon:'wallet'},{id:'bank',name:'운영계좌',short:'계좌',icon:'bank'}];
+export const DEFAULT_PAYMENT_METHODS = [{id:'card',name:'카드'},{id:'cash',name:'현금'},{id:'bank',name:'계좌이체'},{id:'repCard',name:'대표카드'},{id:'personalCard',name:'개인카드(대납)'}];
+export const accountDefinitions=state=>Array.isArray(state?.accounts)?state.accounts:ACCOUNTS;
+export const selectableAccounts=state=>accountDefinitions(state).filter(a=>a.active!==false);
+export const paymentMethodDefinitions=state=>Array.isArray(state?.paymentMethods)?state.paymentMethods:DEFAULT_PAYMENT_METHODS;
+export const selectablePaymentMethods=state=>paymentMethodDefinitions(state).filter(m=>m.active!==false);
+export const paymentMethodLabel=(entry,state)=>entry?.type==='sale'?({card:'점포 카드',cash:'점포 현금',bank:'점포 계좌이체'}[entry.method]||'기타'):(paymentMethodDefinitions(state).find(m=>m.id===entry?.method)?.name||DEFAULT_PAYMENT_METHODS.find(m=>m.id===entry?.method)?.name||entry?.method||'—');
+export function personalCardSummary(state){
+ const entries=(state.entries||[]).filter(e=>e.type==='expense'&&e.method==='personalCard');
+ const amount=entries.reduce((n,e)=>n+e.amount,0),settled=entries.reduce((n,e)=>n+paidAmount(e),0);
+ return {entries,amount,settled,outstanding:amount-settled,open:entries.filter(e=>outstanding(e)>0)};
+}
 export const CATEGORIES = {sale:['보틀·세트','칵테일·샷','입장료','인포 매출','기타 매출'],expense:['주류 매입','임대료','공과금','소모품','광고·홍보','식비·복리후생','기타 지출'],funding:['대표자 입금','차입금','기타 입금'],refund:['매출 환불'],transfer:['자금 이동']};
 export function expenseCategoryOptions(state){const rows=Array.isArray(state?.expenseCategories)?state.expenseCategories:[...CATEGORIES.expense,...(state?.customCategories||[]),...(state?.entries||[]).filter(e=>e.type==='expense').map(e=>e.category)];return [...new Set(rows.map(c=>String(c||'').trim()).filter(Boolean))];}
 export const TYPE_NAMES = {sale:'매출',expense:'지출',funding:'기타 입금',transfer:'자금 이동',refund:'매출 환불'};
@@ -38,7 +49,7 @@ export function revenueValue(entry){return entry.type==='sale'?entry.amount:entr
 export function entrySign(entry){return entry.type==='expense'||entry.type==='refund'?-1:1;}
 export function accountBalances(state,end='9999-12-31'){
  const balances={...state.openingBalances},since=state.openingDate||'0000-01-01';
- if(end<since)return Object.fromEntries(ACCOUNTS.map(a=>[a.id,null]));
+ if(end<since)return Object.fromEntries(accountDefinitions(state).map(a=>[a.id,null]));
  for(const e of state.entries){
   if(e.type==='transfer'){
    if(e.paymentDate>=since&&e.paymentDate<=end){balances[e.fromAccount]-=e.amount;balances[e.toAccount]+=e.amount;}
@@ -86,26 +97,26 @@ export function costGroups(state,range){
  if(s.fees)totals['카드 수수료']=s.fees;
  return Object.entries(totals).map(([name,amount])=>({name,amount})).sort((a,b)=>b.amount-a.amount);
 }
-export function addPayment(entry,payment){
+export function addPayment(entry,payment,accounts=ACCOUNTS){
  const amount=Number(payment.amount),fee=Number(payment.fee||0);
  if(!Number.isSafeInteger(amount)||amount<=0||amount>outstanding(entry))throw new Error('남은 금액 안에서 지급·입금액을 입력해 주세요.');
- if(!ACCOUNTS.some(a=>a.id===payment.accountId))throw new Error('계좌를 선택해 주세요.');
+ if(!accounts.some(a=>a.id===payment.accountId))throw new Error('계좌를 선택해 주세요.');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(payment.date))throw new Error('입출금일을 선택해 주세요.');
  if(!Number.isSafeInteger(fee)||fee<0||fee>=amount)throw new Error('수수료는 정산 금액보다 작아야 합니다.');
  return {...entry,payments:[...(entry.payments||[]),{...payment,amount,fee}]};
 }
-export function validateEntry(e){
+export function validateEntry(e,accounts=ACCOUNTS){
  if(!TYPE_NAMES[e.type])throw new Error('거래 종류를 선택해 주세요.');
  if(!e.title?.trim())throw new Error('거래 내용을 입력해 주세요.');
  if(!Number.isSafeInteger(e.amount)||e.amount<=0||e.amount>99999999999)throw new Error('금액은 1원 이상 정수로 입력해 주세요.');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(e.businessDate))throw new Error('영업일을 선택해 주세요.');
  if(e.type==='transfer'){
-  if(!ACCOUNTS.some(a=>a.id===e.fromAccount)||!ACCOUNTS.some(a=>a.id===e.toAccount)||e.fromAccount===e.toAccount)throw new Error('서로 다른 출금·입금 계좌를 선택해 주세요.');
+  if(!accounts.some(a=>a.id===e.fromAccount)||!accounts.some(a=>a.id===e.toAccount)||e.fromAccount===e.toAccount)throw new Error('서로 다른 출금·입금 계좌를 선택해 주세요.');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(e.paymentDate))throw new Error('이동일을 선택해 주세요.');
  }else{
   let amount=0;
   for(const p of e.payments||[]){
-   if(!ACCOUNTS.some(a=>a.id===p.accountId)||!Number.isSafeInteger(p.amount)||p.amount<=0||!/^\d{4}-\d{2}-\d{2}$/.test(p.date))throw new Error('입출금 내역을 확인해 주세요.');
+   if(!accounts.some(a=>a.id===p.accountId)||!Number.isSafeInteger(p.amount)||p.amount<=0||!/^\d{4}-\d{2}-\d{2}$/.test(p.date))throw new Error('입출금 내역을 확인해 주세요.');
    if(!Number.isSafeInteger(p.fee||0)||(p.fee||0)<0||(p.fee||0)>=p.amount)throw new Error('수수료를 확인해 주세요.');
    amount+=p.amount;
   }
@@ -145,8 +156,8 @@ export function makeDemo(today=localDate()){
 export function parseStored(raw){
  const value=JSON.parse(raw);
  if(value?.version!==1||!Array.isArray(value.entries)||!Array.isArray(value.payroll)||!value.openingBalances||!ACCOUNTS.every(a=>Number.isSafeInteger(value.openingBalances[a.id])))throw new Error('저장 형식을 확인할 수 없습니다.');
- value.entries.forEach(validateEntry);
- for(const p of value.payroll){if(!Number.isSafeInteger(p.amount)||p.amount<=0||!Array.isArray(p.payments))throw new Error('급여 자료를 확인할 수 없습니다.');validateEntry({...p,type:'expense',title:p.employee});}
+ value.entries.forEach(e=>validateEntry(e,accountDefinitions(value)));
+ for(const p of value.payroll){if(!Number.isSafeInteger(p.amount)||p.amount<=0||!Array.isArray(p.payments))throw new Error('급여 자료를 확인할 수 없습니다.');validateEntry({...p,type:'expense',title:p.employee},accountDefinitions(value));}
  return migrateSalesChannels(value);
 }
 
@@ -231,13 +242,16 @@ export function validateWorkspace(input,previous=null){
  if(!input||input.version!==1||!Array.isArray(input.entries)||input.entries.length>20000)throw Error('장부 형식을 확인해 주세요.');
  if(previous?.salesChannelsVersion===2&&input.salesChannelsVersion!==2)throw Error('매출 입력 항목이 변경되었습니다. 새로고침 후 다시 저장해 주세요.');
  const clone=migrateSalesChannels(JSON.parse(JSON.stringify(input)));
- if(!clone.openingBalances||!ACCOUNTS.every(a=>Number.isSafeInteger(clone.openingBalances[a.id])&&Math.abs(clone.openingBalances[a.id])<=1000000000000))throw Error('기초 잔액을 확인해 주세요.');
+ const accounts=accountDefinitions(clone),methods=paymentMethodDefinitions(clone);
+ if(!Array.isArray(accounts)||accounts.length<2||accounts.length>40||accounts.some(a=>!a||typeof a.id!=='string'||!/^(cash|bank|ac-[\w-]{6,80})$/.test(a.id)||typeof a.name!=='string'||!a.name.trim()||a.name.length>50||!['boolean','undefined'].includes(typeof a.active))||new Set(accounts.map(a=>a.id)).size!==accounts.length||!accounts.some(a=>a.id==='cash'&&a.active!==false)||!accounts.some(a=>a.id==='bank'&&a.active!==false))throw Error('입출금 위치 설정을 확인해 주세요.');
+ if(!Array.isArray(methods)||methods.length>40||methods.some(m=>!m||typeof m.id!=='string'||!/^(card|cash|bank|repCard|personalCard|pm-[\w-]{6,80})$/.test(m.id)||typeof m.name!=='string'||!m.name.trim()||m.name.length>50||!['boolean','undefined'].includes(typeof m.active))||new Set(methods.map(m=>m.id)).size!==methods.length)throw Error('결제수단 설정을 확인해 주세요.');
+ if(!clone.openingBalances||!accounts.every(a=>Number.isSafeInteger(clone.openingBalances[a.id])&&Math.abs(clone.openingBalances[a.id])<=1000000000000))throw Error('기초 잔액을 확인해 주세요.');
  const ids=new Set(),pids=new Set();
  for(const e of clone.entries){
-  validateEntry(e);
+  validateEntry(e,accounts);
   if(typeof e.id!=='string'||!e.id||e.id.length>150||ids.has(e.id))throw Error('거래 번호가 올바르지 않거나 중복됐습니다.');ids.add(e.id);
   for(const field of ['title','category','partner','note'])if(typeof e[field]!=='string'||e[field].length>(field==='note'?1000:150))throw Error('거래 내용과 비고 길이를 확인해 주세요.');
-  if(e.type!=='transfer'&&!['card','cash','bank'].includes(e.method))throw Error('결제수단을 확인해 주세요.');
+  if(e.type!=='transfer'&&!methods.some(m=>m.id===e.method)&&!['card','cash','bank','repCard','personalCard'].includes(e.method))throw Error('결제수단을 확인해 주세요.');
   if(e.saleLocation!==undefined&&!['info','store'].includes(e.saleLocation))throw Error('매출 구역을 확인해 주세요.');
   if(e.type==='sale'&&isInfoSale(e)&&(saleChannel(e)==='infoCard'?e.method!=='card':e.method!=='bank'))throw Error('인포 단말기는 카드, 인포 계좌이체는 계좌이체로 입력해 주세요.');
   if((e.payments||[]).length>500)throw Error('입출금 기록이 너무 많습니다.');
@@ -266,6 +280,6 @@ export function validateWorkspace(input,previous=null){
  if(clone.vendors!==undefined&&!Array.isArray(clone.vendors))throw Error('고정 거래처 목록을 확인해 주세요.');
  const vendors=clone.vendors||[];
  if(vendors.length>100||vendors.some(v=>typeof v!=='string'||!v.trim()||v.trim().length>60))throw Error('고정 거래처는 이름당 60자 이내, 최대 100개까지 등록할 수 있습니다.');
- return {version:1,salesChannelsVersion:2,...(previous?.salesChannelsMigration?{salesChannelsMigration:previous.salesChannelsMigration}:{}),demoDate:typeof clone.demoDate==='string'?clone.demoDate:localDate(),openingDate:clone.openingDate||'1900-01-01',openingBalances:{cash:clone.openingBalances.cash,bank:clone.openingBalances.bank},entries:clone.entries,payroll:[],closings,customCategories:[...new Set(categories.map(c=>c.trim()).filter(Boolean))],...(clone.expenseCategories!==undefined?{expenseCategories:[...new Set(clone.expenseCategories.map(c=>c.trim()).filter(Boolean))]}:{}),vendors:[...new Set(vendors.map(v=>v.trim()))],staffUrl:STAFF_URL};
+ return {version:1,salesChannelsVersion:2,...(previous?.salesChannelsMigration?{salesChannelsMigration:previous.salesChannelsMigration}:{}),demoDate:typeof clone.demoDate==='string'?clone.demoDate:localDate(),openingDate:clone.openingDate||'1900-01-01',openingBalances:Object.fromEntries(accounts.map(a=>[a.id,clone.openingBalances[a.id]])),accounts:accounts.map(a=>({id:a.id,name:a.name.trim(),short:a.short||a.name.trim(),icon:a.icon||'bank',active:a.active!==false})),paymentMethods:methods.map(m=>({id:m.id,name:m.name.trim(),active:m.active!==false})),entries:clone.entries,payroll:[],closings,customCategories:[...new Set(categories.map(c=>c.trim()).filter(Boolean))],...(clone.expenseCategories!==undefined?{expenseCategories:[...new Set(clone.expenseCategories.map(c=>c.trim()).filter(Boolean))]}:{}),vendors:[...new Set(vendors.map(v=>v.trim()))],staffUrl:STAFF_URL};
 }
 
