@@ -8,8 +8,10 @@ const periodText=report=>report.mode==='personal'?'전체 기간 · 미정산 �
 async function loadLogo(){
  try{const img=new Image();img.decoding='async';img.src=new URL('./assets/workspace-report-a-400-600.png',import.meta.url).href;await img.decode();return img;}catch{return null;}
 }
-function text(ctx,value,x,y,size=10,{bold=false,color=palette.ink,right=false,maxWidth}={}){
- ctx.font=(bold?'600 ':'400 ')+size+'px Pretendard, sans-serif';
+function text(ctx,value,x,y,size=10,{bold=false,color=palette.ink,right=false,maxWidth,fit=false}={}){
+ let actualSize=size;
+ ctx.font=(bold?'600 ':'400 ')+actualSize+'px Pretendard, sans-serif';
+ if(fit&&maxWidth)while(actualSize>6.3&&ctx.measureText(str(value)).width>maxWidth){actualSize-=.2;ctx.font=(bold?'600 ':'400 ')+actualSize+'px Pretendard, sans-serif';}
  ctx.fillStyle=color;
  let string=str(value);
  if(maxWidth){while(string.length>1&&ctx.measureText(string).width>maxWidth)string=string.slice(0,-2)+'…';}
@@ -38,25 +40,27 @@ function drawCards(ctx,cards,y){
  });
 }
 function columnsFor(report){
- if(report.mode==='personal')return [{title:'구매일',w:66},{title:'구매 내용 · 거래처',w:190},{title:'대납액',w:89,right:true},{title:'정산액',w:89,right:true},{title:'미정산',w:89,right:true}];
- return [{title:'영업일',w:62},{title:'거래 내용 · 거래처',w:150},{title:'지출항목',w:81},{title:'결제수단',w:86},{title:'지출액',w:72,right:true},{title:'미지급액',w:72,right:true}];
+ if(report.mode==='personal')return [{title:'구매일',w:82},{title:'구매 내용 · 거래처',w:174},{title:'대납액',w:89,right:true},{title:'정산액',w:89,right:true},{title:'미정산',w:89,right:true}];
+ if(report.mode==='sales')return [{title:'영업일',w:82},{title:'거래 내용 · 거래처',w:140},{title:'매출 구분',w:104},{title:'매출액',w:70,right:true},{title:'입금액',w:65,right:true},{title:'미수액',w:62,right:true}];
+ return [{title:'영업일',w:82},{title:'거래 내용 · 거래처',w:142},{title:'지출항목',w:77},{title:'결제수단',w:82},{title:'지출액',w:69,right:true},{title:'미지급액',w:71,right:true}];
 }
 function drawTableHead(ctx,columns,y){
  ctx.fillStyle=palette.ink;ctx.fillRect(M,y,AREA,30);
  let x=M;
- columns.forEach(c=>{text(ctx,c.title,c.right?x+c.w-8:x+8,y+19,8.6,{bold:true,right:!!c.right,color:palette.white,maxWidth:c.w-14});x+=c.w;});
+ columns.forEach(c=>{text(ctx,c.title,c.right?x+c.w-8:x+8,y+19,8.6,{bold:true,right:!!c.right,color:palette.white,maxWidth:c.w-14,fit:true});x+=c.w;});
  return y+36;
 }
 function drawRow(ctx,report,columns,row,y,index){
  if(index%2===0){ctx.fillStyle=palette.pale;ctx.fillRect(M,y-3,AREA,29);}
- const unsettled=Math.max(0,row.amount-row.settled);
+ const unsettled=row.outstanding??Math.max(0,row.amount-row.settled);
  const cells=report.mode==='personal'?
   [row.date,row.title,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
+  report.mode==='sales'?[row.date,row.title,row.category,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
   [row.date,row.title,row.category,row.method,fmt(row.amount),fmt(unsettled)];
  let x=M;
  columns.forEach((c,i)=>{
   const isTitle=i===1, isImportant=i===columns.length-1, color=isImportant&&unsettled>0?palette.red:palette.ink;
-  text(ctx,cells[i],c.right?x+c.w-8:x+8,y+12,8.8,{bold:isImportant,right:!!c.right,color,maxWidth:c.w-16});
+  text(ctx,cells[i],c.right?x+c.w-8:x+8,y+12,i===0?8.8:8.8,{bold:isImportant,right:!!c.right,color,maxWidth:c.w-16,fit:i===0||!!c.right});
   if(isTitle)text(ctx,row.partner||' ',x+8,y+24,7.7,{color:palette.muted,maxWidth:c.w-16});
   x+=c.w;
  });
@@ -64,17 +68,19 @@ function drawRow(ctx,report,columns,row,y,index){
 }
 function buildPages(report,logo){
  const pages=[],columns=columnsFor(report);
- let page=newPage(logo,report.mode==='personal'?'개인카드 대납 정산':'지출관리 내보내기',periodText(report),1),ctx=page.ctx;
- text(ctx,report.mode==='personal'?'미정산 거래는 조회 월과 관계없이 누적합니다.':'조회 기간의 등록 지출 · 정산 기준 / 단위: 원',M,133,9,{color:palette.muted});
+ const title=report.mode==='personal'?'개인카드 대납 정산':report.mode==='sales'?'매출관리 내보내기':'지출관리 내보내기';
+ let page=newPage(logo,title,periodText(report),1),ctx=page.ctx;
+ text(ctx,report.mode==='personal'?'미정산 거래는 조회 월과 관계없이 누적합니다.':report.mode==='sales'?'일마감과 동일한 매출 구분 · 환불은 음수 · 단위: 원':'조회 기간의 등록 지출 · 정산 기준 / 단위: 원',M,133,9,{color:palette.muted});
  drawCards(ctx,report.mode==='personal'?
   [{label:'전체 누적 대납액',value:report.total},{label:'정산 완료 금액',value:report.settled},{label:'돌려받을 잔액',value:report.outstanding}]:
+  report.mode==='sales'?[{label:'매출 (환불 반영)',value:report.total},{label:'입금·환불 기록',value:report.settled},{label:'미수 매출',value:report.outstanding}]:
   [{label:'선택 기간 지출액',value:report.total},{label:'지급 기록액',value:report.settled},{label:'미지급액',value:report.outstanding}],153);
  text(ctx,'거래별 상세 내역',M,252,12,{bold:true});
  let y=drawTableHead(ctx,columns,265),count=0;
  const rows=report.rows||[];
  if(!rows.length)text(ctx,'조회된 지출 내역이 없습니다.',M+8,y+25,10,{color:palette.muted});
  for(const row of rows){
-  if(y+34>H-74){pages.push(page);page=newPage(logo,report.mode==='personal'?'개인카드 대납 정산':'지출관리 내보내기',periodText(report),pages.length+1);ctx=page.ctx;y=drawTableHead(ctx,columns,129);count=0;}
+  if(y+34>H-74){pages.push(page);page=newPage(logo,title,periodText(report),pages.length+1);ctx=page.ctx;y=drawTableHead(ctx,columns,129);count=0;}
   drawRow(ctx,report,columns,row,y,count++);y+=30;
  }
  pages.push(page);

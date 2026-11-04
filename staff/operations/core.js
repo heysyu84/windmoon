@@ -13,6 +13,13 @@ export function personalCardSummary(state){
  const amount=entries.reduce((n,e)=>n+e.amount,0),settled=entries.reduce((n,e)=>n+paidAmount(e),0);
  return {entries,amount,settled,outstanding:amount-settled,open:entries.filter(e=>outstanding(e)>0)};
 }
+export const SALE_CHANNELS=[
+ {id:'card',group:'점포 매출',name:'카드 매출',method:'card',saleLocation:'store'},
+ {id:'cash',group:'점포 매출',name:'현금 매출',method:'cash',saleLocation:'store'},
+ {id:'bank',group:'점포 매출',name:'계좌이체 매출',method:'bank',saleLocation:'store'},
+ {id:'infoCard',group:'인포 매출',name:'단말기 매출',method:'card',saleLocation:'info'},
+ {id:'infoBank',group:'인포 매출',name:'계좌이체 매출',method:'bank',saleLocation:'info'}
+];
 export const CATEGORIES = {sale:['보틀·세트','칵테일·샷','입장료','인포 매출','기타 매출'],expense:['주류 매입','임대료','공과금','소모품','광고·홍보','식비·복리후생','기타 지출'],funding:['대표자 입금','차입금','기타 입금'],refund:['매출 환불'],transfer:['자금 이동']};
 export function expenseCategoryOptions(state){const rows=Array.isArray(state?.expenseCategories)?state.expenseCategories:[...CATEGORIES.expense,...(state?.customCategories||[]),...(state?.entries||[]).filter(e=>e.type==='expense').map(e=>e.category)];return [...new Set(rows.map(c=>String(c||'').trim()).filter(Boolean))];}
 export const TYPE_NAMES = {sale:'매출',expense:'지출',funding:'기타 입금',transfer:'자금 이동',refund:'매출 환불'};
