@@ -15,7 +15,7 @@ const $=s=>root.querySelector(s),today=localDate();
 if(location.hostname==='windmoon-operations.heysyu457310.chatgpt.site')for(const link of root.querySelectorAll('a[href^="../"]'))link.href=new URL(link.getAttribute('href').slice(3),'https://windmoon.pages.dev/').href;
 let state=makeEmpty(today),demoState=makeDemo(today),serverState=makeEmpty(today),mode='real',revision=0,serverReady=false,saving=false,loading=false,pendingSave=null,payrollData=sharedPayrollCache;
 let loadMessage='';
-let reportSnapshot=null,reportExporting=false;
+let reportSnapshot=null,reportExporting=false,expenseExporting=false;
 try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)demoState=parseStored(raw);mode=localStorage.getItem('windmoon-operations-mode')==='demo'?'demo':'real';}catch{loadMessage='이전 브라우저 자료를 읽지 못했습니다. 서버 장부는 별도로 연결합니다.';}
 demoState.closings||={};demoState.staffUrl=STAFF_URL;
 const operatingDay=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()))<12?shiftDate(today,-1):today;
@@ -101,7 +101,7 @@ function chooseCalendarDate(field,date){
  renderPeriod();
  renderContent();
 }
-function renderContent(){if(disposed)return;const r=getRange();$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(mode==='real'&&!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'서버 장부와 급여를 연결하고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료가 연결되지 않아 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 연결해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">최신 급여 연결에 실패해 마지막으로 가져온 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{dailyOpen:!!$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'?renderLedger(state,r,ui.page,ui.filters):ui.page==='expenses'?('<div class="funds-view-switch"><span>지출 메뉴</span><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">일반 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">개인카드 대납 정산 · '+money(personalCardSummary(state).outstanding)+'원</button></div></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
+function renderContent(){if(disposed)return;const r=getRange();$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(mode==='real'&&!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'서버 장부와 급여를 연결하고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료가 연결되지 않아 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 연결해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">최신 급여 연결에 실패해 마지막으로 가져온 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{dailyOpen:!!$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'?renderLedger(state,r,ui.page,ui.filters):ui.page==='expenses'?('<div class="funds-view-switch"><span>지출 메뉴</span><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">일반 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">개인카드 대납 정산 · '+money(personalCardSummary(state).outstanding)+'원</button></div><button type="button" class="secondary-btn" data-expense-pdf="1">'+icon('arrowDown',14)+' 지출 PDF 내보내기</button></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
 function renderPage(){if(disposed)return;
  if(ui.page==='closing')ui.period='day';
  const n=NAV.find(n=>n.id===ui.page);$('#crumb').textContent=n.name;$('#page-title').textContent=n.name;$('#eyebrow').textContent=n.eyebrow;$('#page-description').textContent=n.description;$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';
@@ -127,6 +127,28 @@ function openReportExport(){
   $('#report-export-warning').textContent=[reportSnapshot.demo?'예시 자료로 내보냅니다.':'',reportSnapshot.unclosed?'미마감 '+reportSnapshot.unclosed+'일이 포함되어 있습니다. 입력된 금액까지만 반영됩니다.':'',reportSnapshot.stale?'마지막으로 연결한 급여 자료가 반영됩니다.':''].filter(Boolean).join(' ');
   $('#report-export-error').textContent='';showDialog('report-export');
  }catch(error){toast(error.message);}
+}
+async function exportExpensePdf(){
+ if(expenseExporting)return;
+ expenseExporting=true;
+ const btn=$('[data-expense-pdf]'),old=btn?.textContent;
+ if(btn){btn.disabled=true;btn.textContent='PDF 준비 중…';}
+ try{
+  const range=getRange(),personal=ui.expenseView==='personal';
+  const entries=state.entries.filter(e=>e.type==='expense'&&(personal?e.method==='personalCard':inRange(e.businessDate,range))).filter(e=>
+   personal||(!ui.filters.search||[e.title,e.partner,e.category,e.note].join(' ').toLowerCase().includes(ui.filters.search.toLowerCase()))&&(!ui.filters.status||paymentStatus(e)===ui.filters.status)&&(!ui.filters.method||e.method===ui.filters.method));
+  const rows=entries.map(e=>({
+   date:e.businessDate,title:e.title,partner:e.partner||'',category:e.category,method:paymentMethodLabel(e,state),
+   amount:e.amount,settled:paidAmount(e),outstanding:outstanding(e)
+  }));
+  const total=rows.reduce((n,e)=>n+e.amount,0),settled=rows.reduce((n,e)=>n+e.settled,0);
+  const exporter=await import('./expense-export.js?v=20261105-expense-pdf-v1');
+  const bytes=await exporter.createExpensePdf({mode:personal?'personal':'expenses',period:range.start===range.end?range.start:range.start+' ~ '+range.end,rows,total,settled,outstanding:total-settled,demo:mode==='demo'});
+  const label=personal?'대납정산_전체기간':'지출관리_'+range.start+(range.start===range.end?'':'_'+range.end);
+  exporter.downloadExpensePdf(bytes,'WINDMOON_'+label+'.pdf');
+  toast('지출 PDF를 저장했습니다.');
+ }catch(error){toast('PDF 내보내기 실패: '+(error.message||'다시 시도해 주세요.'));}
+ finally{expenseExporting=false;if(btn&&btn.isConnected){btn.disabled=false;btn.textContent=old;}}
 }
 async function exportReport(format){
  if(reportExporting||!reportSnapshot||!['pdf','xlsx'].includes(format))return;
@@ -269,6 +291,7 @@ listen('click',async event=>{
  if(button.dataset.reportFormat){await exportReport(button.dataset.reportFormat);return;}
  if(button.dataset.page){navigate(button.dataset.page);return;}
  if(button.dataset.new){openEditor(button.dataset.new);return;}
+ if(button.dataset.expensePdf){await exportExpensePdf();return;}
  if(button.dataset.expenseView){if(!['ledger','personal'].includes(button.dataset.expenseView))return;ui.expenseView=button.dataset.expenseView;renderContent();return;}
  if(button.dataset.settlePersonal){openEntryDetail(button.dataset.settlePersonal);return;}
  if(button.dataset.fundsView){if(!['cash','accrual'].includes(button.dataset.fundsView))return;ui.fundsView=button.dataset.fundsView;renderContent();return;}
