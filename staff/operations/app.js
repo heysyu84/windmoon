@@ -1,4 +1,4 @@
-import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,expenseCategoryOptions,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,saleMethodName,savedVendors} from './core.js?v=20261105-expense-v2';
+import {STORAGE_KEY,STAFF_URL,ACCOUNTS,CATEGORIES,expenseCategoryOptions,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,makeDemo,parseStored,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,saleMethodName,savedVendors} from './core.js?v=20261105-expense-v3';
 import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261102-sales-channels';
 import {buildReport,assertReportReady,reportSheets} from './report-data.js?v=20261102-sales-channels';
 import {renderReport,reportBreakdown} from './report-view.js?v=20261102-sales-channels';
@@ -158,7 +158,7 @@ function openEditor(type='sale',entry=null,draft=null){
  if(entry?.closingDate){ui.day=entry.businessDate;navigate('closing');toast('일마감 매출은 일마감 화면에서 수정해 주세요.');return;}
  const r=getRange(),defaultDate=ui.period==='day'?ui.day:operatingDay>=r.start&&operatingDay<=r.end?operatingDay:r.end;
  if(dayClosed(state,entry?.businessDate||defaultDate)){toast('마감된 영업일입니다. 일마감에서 다시 열어 주세요.');return;}
- const e=draft||entry||{title:'',amount:'',businessDate:defaultDate,category:type==='expense'?'':CATEGORIES[type][0],method:type==='sale'?'card':'bank',partner:'',note:''};
+ const e=draft||entry||{title:'',amount:'',businessDate:defaultDate,category:type==='expense'?'':CATEGORIES[type][0],method:type==='sale'||type==='expense'?'card':'bank',partner:'',note:''};
  $('#editor-title').textContent=entry?'거래 수정':'거래 등록';
  const types=['sale','expense','funding','transfer','refund'];
  const cats=type==='expense'?[...new Set([...expenseCategoryOptions(state),...(e.category?[e.category]:[])])]:[...new Set([...(CATEGORIES[type]||[]),...(state.customCategories||[]),...state.entries.filter(x=>x.type===type).map(x=>x.category)])];
@@ -222,7 +222,15 @@ async function submitClosing(status='closed'){
  try{const next=saveDayClosing(state,ui.day,{card:f.elements.card.value,cash:f.elements.cash.value,bank:f.elements.bank.value,infoCard:f.elements.infoCard.value,infoBank:f.elements.infoBank.value,actualCash:f.elements.actualCash.value,note:f.elements.note.value,status});if(await persist(next,ui.day+' 일마감 '+(status==='closed'?'완료':'임시 저장')))toast(status==='closed'?'일마감을 완료했습니다.':'마감을 임시 저장했습니다.');}
  catch(error){$('#closing-error').textContent=error.message;}
 }
+function syncInitialPaymentDate(event){
+ const f=$('#entry-form'),paidDate=f?.elements.paidDate;
+ if(!paidDate)return;
+ if(event.target===paidDate){paidDate.dataset.manuallyEdited='true';return;}
+ if(event.target===f.elements.businessDate&&paidDate.dataset.manuallyEdited!=='true')paidDate.value=f.elements.businessDate.value;
+}
 $('#entry-form').addEventListener('submit',submitEntry);
+$('#entry-form').addEventListener('input',syncInitialPaymentDate);
+$('#entry-form').addEventListener('change',syncInitialPaymentDate);
 $('#settings-form').addEventListener('submit',async event=>{event.preventDefault();try{const f=event.currentTarget,openingBalances={};for(const a of ACCOUNTS){const value=Number(f.elements['opening-'+a.id].value);if(!Number.isSafeInteger(value))throw new Error('기초 잔액은 정수로 입력해 주세요.');openingBalances[a.id]=value;}const expenseCategories=[...new Set(f.elements.expenseCategories.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];const customCategories=[...new Set(f.elements.categories.value.split(',').map(x=>x.trim()).filter(Boolean))],vendors=[...new Set(f.elements.vendors.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];if(await persist({...state,openingDate:f.elements.openingDate.value,openingBalances,expenseCategories,customCategories,vendors},'기초 잔액·설정 저장')){$('#settings').close();syncVendorOptions();toast('설정을 저장했습니다.');}}catch(error){$('#settings-error').textContent=error.message;}});
 listen('submit',async event=>{if(event.target.id!=='settlement-form')return;event.preventDefault();const f=event.target,e=state.entries.find(e=>e.id===f.dataset.entryId);try{const next=addPayment(e,{id:uid(),date:f.elements.date.value,amount:Number(f.elements.amount.value),accountId:f.elements.accountId.value,fee:Number(f.elements.fee?.value||0)});if(await persist({...state,entries:state.entries.map(x=>x.id===e.id?next:x)})){openEntryDetail(e.id);toast('실제 입출금 내역을 기록했습니다.');}}catch(error){$('#settlement-error').textContent=error.message;}});
 $('#new-entry').addEventListener('click',()=>ui.page==='report'?openReportExport():ui.page==='payroll'?openAbout(true):openEditor(ui.page==='expenses'?'expense':'sale'));
