@@ -68,11 +68,11 @@ function drawRow(ctx,report,columns,row,y,index){
 }
 function buildPages(report,logo){
  const pages=[],columns=columnsFor(report);
- const title=report.mode==='personal'?'개인카드 대납 정산':report.mode==='sales'?'매출관리 내보내기':'지출관리 내보내기';
+ const title=report.mode==='personal'?'개인카드 대납 정산 내역서':report.mode==='sales'?'매출관리 내보내기':'지출관리 내보내기';
  let page=newPage(logo,title,periodText(report),1),ctx=page.ctx;
  text(ctx,report.mode==='personal'?'미정산 거래는 조회 월과 관계없이 누적합니다.':report.mode==='sales'?'일마감과 동일한 매출 구분 · 환불은 음수 · 단위: 원':'조회 기간의 등록 지출 · 정산 기준 / 단위: 원',M,133,9,{color:palette.muted});
  drawCards(ctx,report.mode==='personal'?
-  [{label:'전체 누적 대납액',value:report.total},{label:'정산 완료 금액',value:report.settled},{label:'돌려받을 잔액',value:report.outstanding}]:
+  [{label:'누적 대납금',value:report.total},{label:'정산 완료액',value:report.settled},{label:'미정산 대납금',value:report.outstanding}]:
   report.mode==='sales'?[{label:'매출 (환불 반영)',value:report.total},{label:'입금·환불 기록',value:report.settled},{label:'미수 매출',value:report.outstanding}]:
   [{label:'선택 기간 지출액',value:report.total},{label:'지급 기록액',value:report.settled},{label:'미지급액',value:report.outstanding}],153);
  text(ctx,'거래별 상세 내역',M,252,12,{bold:true});
