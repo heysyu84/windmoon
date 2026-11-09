@@ -2,11 +2,13 @@ export const MM = 72 / 25.4;
 export const GROUP_NAMES = {logo:'로고',identity:'이름·직책',contacts:'연락처',address:'주소',qr:'인스타 QR',rule:'구분선'};
 export const LOGO_STYLE_DEFAULTS = {symbolScale:1,wordmarkScale:1,taglineScale:1,symbolGap:1,taglineGap:1};
 const freshLogoStyles=()=>Object.fromEntries(['horizontal','portrait'].map(o=>[o,Object.fromEntries(['front','back'].map(side=>[side,{...LOGO_STYLE_DEFAULTS}]))]));
+const freshLogoVariants=()=>Object.fromEntries(['horizontal','portrait'].map(o=>[o,{front:'wm',back:'wm'}]));
+export const LOGO_VARIANTS=[{id:'wm',name:'기존 WM 로고'},{id:'officialWhite',name:'풍월관 공식 로고 · 흰색'},{id:'officialDark',name:'풍월관 공식 로고 · 검정색'}];
 export const DEFAULTS = {
   version:1, orientation:'horizontal', syncQr:true, showQr:true, showGuides:false, customFontEnabled:false,
   fields:{koreanName:'권병욱',englishName:'Kwon Byeong Wook',titleKo:'이사',titleEn:'DIRECTOR',phone:'010-0000-0000',email:'director@windmoon.example',instagram:'@windmoon.preview',addressLine1:'B1, 28-5, Donhwamun-ro 11-gil',addressLine2:'Seoul, Republic of Korea',qrUrl:'https://www.instagram.com/windmoon.preview/'},
   design:{frontBg:'#121617',frontInk:'#F4F1E8',backBg:'#F4F1E8',backInk:'#202020',muted:'#858582',rule:'#D5D4CE',nameScale:1,bodyScale:1,titleScale:1,englishScale:1,contactScale:1,addressScale:1},
-  logoStyles:freshLogoStyles(),
+  logoStyles:freshLogoStyles(),logoVariants:freshLogoVariants(),
   layouts:{horizontal:{front:{},back:{}},portrait:{front:{},back:{}}}
 };
 export function freshState(){return structuredClone(DEFAULTS);}
@@ -22,6 +24,10 @@ export function sanitizeState(raw){
   for(const k of ['titleScale','englishScale','contactScale','addressScale'])if(raw.design?.[k]!=null)s.design[k]=clamp(raw.design[k],.5,2);
   for(const o of ['horizontal','portrait'])for(const side of ['front','back'])for(const k of Object.keys(LOGO_STYLE_DEFAULTS)){
     if(raw.logoStyles?.[o]?.[side]?.[k]!=null)s.logoStyles[o][side][k]=clamp(raw.logoStyles[o][side][k],k.endsWith('Gap')?0:.3,3);
+  }
+  for(const o of ['horizontal','portrait'])for(const side of ['front','back']){
+    const variant=raw.logoVariants?.[o]?.[side];
+    if(LOGO_VARIANTS.some(option=>option.id===variant))s.logoVariants[o][side]=variant;
   }
   for(const o of ['horizontal','portrait'])for(const side of ['front','back'])for(const id of Object.keys(GROUP_NAMES)){
     const g=raw.layouts?.[o]?.[side]?.[id];
@@ -110,6 +116,22 @@ function applyLayout(g,layout,scene){
   if(layout?.alignY)g.layout.alignY=layout.alignY;
   return g;
 }
+export function parseOfficialLogoSVG(source){
+  const xml=new DOMParser().parseFromString(source,'image/svg+xml');
+  const root=xml.documentElement;
+  if(root.localName!=='svg'||xml.getElementsByTagName('parsererror').length)throw new Error('공식 로고 SVG를 읽을 수 없습니다.');
+  const box=(root.getAttribute('viewBox')||'').trim().split(/[\\s,]+/).map(Number);
+  if(box.length!==4||!box.every(Number.isFinite)||box[2]<=0||box[3]<=0)throw new Error('공식 로고의 크기를 확인할 수 없습니다.');
+  const paths=[...root.getElementsByTagName('path')];
+  if(!paths.length||paths.length>80)throw new Error('공식 로고 벡터 경로를 확인해 주세요.');
+  const shapes=paths.map(path=>{
+    const matrix=(path.getAttribute('transform')||'').match(/^matrix\\(\\s*1\\s*,\\s*0\\s*,\\s*0\\s*,\\s*-1\\s*,\\s*([+-]?(?:[0-9]*[.])?[0-9]+)\\s*,\\s*([+-]?(?:[0-9]*[.])?[0-9]+)\\s*\\)$/);
+    const color=path.getAttribute('fill')||'',d=path.getAttribute('d')||'';
+    if(!matrix||!/^#[0-9a-fA-F]{6}$/.test(color)||!d)throw new Error('공식 로고의 벡터 형식이 올바르지 않습니다.');
+    return {path:d,x:Number(matrix[1])-box[0],y:Number(matrix[2])-box[1],fill:color};
+  });
+  return {width:box[2],height:box[3],shapes};
+}
 export function buildScene(state,orientation,side,fonts,logos,qrFactory){
   const portrait=orientation==='portrait',w=portrait?50:90,h=portrait?90:50;
   const d=state.design,f=state.fields,groups=[];
@@ -129,13 +151,17 @@ export function buildScene(state,orientation,side,fonts,logos,qrFactory){
     if(!Number.isFinite(b.x1))return;
     add({kind:'path',path:result.path,x,y,scale:1,fill,text:value,bounds:{x:x+b.x1,y:y+b.y1,w:b.x2-b.x1,h:b.y2-b.y1}});
   };
+  const chosenLogo=state.logoVariants?.[orientation]?.[side]||'wm';
+  const logoAsset=version=>chosenLogo==='officialWhite'?logos.officialWhite:chosenLogo==='officialDark'?logos.officialDark:logos[version];
   const logo=(x,y,width,colour,version='normal')=>{
-    const asset=logos[version],scale=width/asset.width;
+    const asset=logoAsset(version),scale=width/asset.width;
     active.anchor={x,y};
     const style={...LOGO_STYLE_DEFAULTS,...state.logoStyles?.[orientation]?.[side]};
     const parts=asset.parts,items=[];
     if(!parts){
-      for(const path of asset.paths)add({kind:'path',path,x,y,scale,fill:colour,bounds:{x,y,w:width,h:asset.height*scale}});
+      if(asset.shapes){
+        for(const shape of asset.shapes)add({kind:'path',path:shape.path,x:x+shape.x*scale,y:y+shape.y*scale,scale,svgFlipY:true,fill:shape.fill,bounds:{x,y,w:width,h:asset.height*scale}});
+      }else for(const path of asset.paths)add({kind:'path',path,x,y,scale,fill:colour,bounds:{x,y,w:width,h:asset.height*scale}});
       return;
     }
     let previous,previousBase;
@@ -159,11 +185,11 @@ export function buildScene(state,orientation,side,fonts,logos,qrFactory){
     for(const item of items){item.y+=shiftY;item.bounds.y+=shiftY;add(item);}
   };
   if(side==='front'){
-    group('logo');const width=portrait?46:80,asset=logos[portrait?'portrait':'normal'];
+    group('logo');const width=portrait?46:80,asset=logoAsset(portrait?'portrait':'normal');
     logo((w-width)/2,(h-width*asset.height/asset.width)/2,width,d.frontInk,portrait?'portrait':'normal');
   }else{
     group('logo');const width=portrait?22:24;
-    logo(portrait?6.5:59,h-(portrait?73:33.3)-width*logos.normal.height/logos.normal.width,width,d.backInk);
+    logo(portrait?6.5:59,h-(portrait?73:33.3)-width*logoAsset('normal').height/logoAsset('normal').width,width,d.backInk);
     group('identity');
     const x=portrait?6.5:7,max=portrait?37:48;
     text([f.titleKo,f.titleEn].filter(Boolean).join('  /  '),x,portrait?23.8:7.7,6.5*(d.titleScale??1),{tracking:portrait?.4:.5,fill:d.muted,maxWidth:max});
@@ -196,7 +222,7 @@ export function buildScene(state,orientation,side,fonts,logos,qrFactory){
   return scene;
 }
 function itemSVG(i){
-  if(i.kind==='path')return `<path d="${i.path}" transform="translate(${round(i.x)} ${round(i.y)}) scale(${round(i.scale)})" fill="${i.fill}"/>`;
+  if(i.kind==='path')return `<path d="${i.path}" transform="translate(${round(i.x)} ${round(i.y)}) scale(${round(i.scale)}${i.svgFlipY?' -'+round(i.scale):''})" fill="${i.fill}"/>`;
   if(i.kind==='rect')return `<rect x="${round(i.x)}" y="${round(i.y)}" width="${round(i.w)}" height="${round(i.h)}" fill="${i.fill}"/>`;
   return `<path d="M${round(i.x)} ${round(i.y)}L${round(i.x2)} ${round(i.y2)}" stroke="${i.fill}" stroke-width="${round(i.thickness)}" fill="none"/>`;
 }

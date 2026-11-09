@@ -1,4 +1,4 @@
-import {DEFAULTS,GROUP_NAMES,LOGO_STYLE_DEFAULTS,freshState,sanitizeState,instagramURL,normalizeURL,buildScene,sceneSVG,sceneWarnings,createPDF,sampleFields} from './core.js';
+import {DEFAULTS,GROUP_NAMES,LOGO_STYLE_DEFAULTS,freshState,sanitizeState,instagramURL,normalizeURL,buildScene,sceneSVG,sceneWarnings,createPDF,sampleFields,parseOfficialLogoSVG} from './core.js?v=20261110-official-logos-v1';
 import {zipBytes,pngWith300DPI,download} from './files.js';
 
 const $=id=>document.getElementById(id),KEY='windmoon-card-studio-v1';
@@ -44,13 +44,17 @@ function syncControls(){
   for(const id of designScaleIds){$(id).value=Math.round(state.design[id]*100);$(id+'Value').textContent=Math.round(state.design[id]*100)+'%';}
   const sel=effectiveSelection();$('layoutSide').value=sel.side;
   $('logoSide').value=sel.side;
+  const logoVariant=state.logoVariants[state.orientation][sel.side];$('logoVariant').value=logoVariant;
   const style=state.logoStyles[state.orientation][sel.side],logoSel={side:sel.side,id:'logo'},logoLayout=layout(logoSel),logoGroup=groupFor(logoSel);
   for(const el of document.querySelectorAll('[data-logo-style]'))if(document.activeElement!==el)el.value=Math.round(style[el.dataset.logoStyle]*100);
   $('logoOverall').value=Math.round(logoLayout.scale*100);$('logoOverallValue').textContent=Math.round(logoLayout.scale*100)+'%';
   $('logoDimensions').textContent=logoGroup?`현재 로고 ${logoGroup.bounds.w.toFixed(1)} × ${logoGroup.bounds.h.toFixed(1)} mm`:'로고를 불러오는 중입니다.';
   for(const button of document.querySelectorAll('[data-logo-align]')){button.disabled=!ready;button.setAttribute('aria-pressed',String(logoLayout.alignX===button.dataset.logoAlign));}
   $('centerLogoBoth').disabled=!ready;$('logoOverall').disabled=!ready;
-  for(const el of document.querySelectorAll('[data-logo-style]'))el.disabled=!ready;
+  for(const el of document.querySelectorAll('[data-logo-style]')){
+    el.disabled=!ready||logoVariant!=='wm';
+    const row=el.closest('.component-control');if(row)row.style.display=logoVariant==='wm'?'':'none';
+  }
   const ids=sel.side==='front'?['logo']:['logo','identity','contacts','address',...(state.showQr?['qr']:[]),'rule'];
   $('layoutGroup').innerHTML=ids.map(id=>`<option value="${id}">${GROUP_NAMES[id]}</option>`).join('');
   $('layoutGroup').value=ids.includes(sel.id)?sel.id:'logo';
@@ -93,6 +97,11 @@ const palettes={classic:{frontBg:'#121617',frontInk:'#F4F1E8',backBg:'#F4F1E8',b
 document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>commit(s=>Object.assign(s.design,palettes[b.dataset.palette]))));
 for(const id of designScaleIds)$(id).addEventListener('input',()=>commit(s=>s.design[id]=Number($(id).value)/100));
 $('logoSide').addEventListener('change',()=>select($('logoSide').value,'logo'));
+$('logoVariant').addEventListener('change',()=>{
+  const side=$('logoSide').value,variant=$('logoVariant').value;
+  selected={side,id:'logo'};
+  commit(s=>{s.logoVariants[s.orientation][side]=variant;});
+});
 for(const button of document.querySelectorAll('[data-logo-align]'))button.addEventListener('click',()=>alignSelection(logoSelection(),button.dataset.logoAlign));
 $('centerLogoBoth').addEventListener('click',()=>alignSelection(logoSelection(),'center','center'));
 $('logoOverall').addEventListener('input',()=>resizeSelection(logoSelection(),Number($('logoOverall').value)/100));
@@ -232,8 +241,8 @@ async function waitForLibraries(){if(window.opentype&&window.qrcode&&window.PDFL
 async function init(){
   syncControls();render();
   try{
-    const response=await Promise.all(['assets/Pretendard-regular.ttf','assets/Pretendard-bold.ttf','assets/logo.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw new Error('디자인 자산을 불러오지 못했습니다.');return url.endsWith('.json')?r.json():r.arrayBuffer();}));
-    await waitForLibraries();fonts={regular:window.opentype.parse(response[0]),bold:window.opentype.parse(response[1]),custom:null};logos=response[2];
+    const response=await Promise.all(['assets/Pretendard-regular.ttf','assets/Pretendard-bold.ttf','assets/logo.json','assets/pungwolgwan_official_white.svg','assets/pungwolgwan_official_dark.svg'].map(async url=>{const r=await fetch(url);if(!r.ok)throw new Error('디자인 자산을 불러오지 못했습니다.');return url.endsWith('.json')?r.json():url.endsWith('.svg')?r.text():r.arrayBuffer();}));
+    await waitForLibraries();fonts={regular:window.opentype.parse(response[0]),bold:window.opentype.parse(response[1]),custom:null};logos={...response[2],officialWhite:parseOfficialLogoSVG(response[3]),officialDark:parseOfficialLogoSVG(response[4])};
     if(state.customFontEnabled){try{const stored=await fontDB('get');if(stored?.bytes){fonts.custom=window.opentype.parse(stored.bytes);customFontData=stored;}else state.customFontEnabled=false;}catch{state.customFontEnabled=false;}}
     ready=true;render();syncControls();persist();
     window.windmoonStudio={getState:()=>structuredClone(state),getScenes:()=>scenes,exportFile};
