@@ -27,3 +27,25 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
 @media print{.suite-return{display:none!important}}
+
+/* WINDMOON Studio · flexible background and decoration designer */
+.card-template-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:9px 0 20px}
+.card-template{min-width:0;background:#fff;border:1px solid #DFDBD3;border-radius:9px;padding:8px;text-align:left;color:#2C302F;cursor:pointer;transition:border-color .2s,transform .2s}
+.card-template:hover{border-color:#AE8862;transform:translateY(-1px)}
+.card-template:focus-visible{outline:2px solid #A77D51;outline-offset:3px}
+.card-template strong{display:block;font-size:12px;line-height:1.5;padding-top:7px}
+.card-template small{display:block;color:#837B75;font-size:10px}
+.card-template-swatch{display:block;aspect-ratio:2/1;border-radius:5px;border:1px solid rgba(0,0,0,.1)}
+.swatch-fabric{background:#101115 url('assets/fabric-black-wide.jpg') center/cover}
+.swatch-dual{background:linear-gradient(135deg,#131313 0 49%,#F4EEE5 49% 100%)}
+.swatch-minimal{background:linear-gradient(135deg,#262A30 0 53%,#F1EFEC 53% 100%)}
+.swatch-burgundy{background:linear-gradient(135deg,#371E26 0 57%,#EEE6DC 57% 100%)}
+.tool-subtitle{margin:6px 0 10px;font-size:12px;font-weight:700;letter-spacing:.02em;color:#686058}
+.background-upload-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 13px}
+.background-upload-row .button{white-space:nowrap}
+.background-upload-row .field-help{font-size:11px;max-width:150px;overflow-wrap:anywhere}
+#backgroundCustomTools{padding-bottom:10px}
+.designer-color-label{display:flex;flex-direction:column;gap:6px}
+.designer-color-label input{width:100%;height:36px;border:1px solid #DEDBD6;border-radius:5px;padding:3px;background:white}
+.designer-opacity-label{justify-content:center;padding-top:2px}
+@media(max-width:600px){.card-template-grid{gap:7px}.card-template{padding:6px}.card-template strong{font-size:11px}}

@@ -1,14 +1,25 @@
 export const MM = 72 / 25.4;
-export const GROUP_NAMES = {logo:'로고',identity:'이름·직책',contacts:'연락처',address:'주소',qr:'인스타 QR',rule:'구분선'};
+export const GROUP_NAMES = {decor:'장식',logo:'로고',identity:'이름·직책',contacts:'연락처',address:'주소',qr:'인스타 QR',rule:'구분선'};
 export const LOGO_STYLE_DEFAULTS = {symbolScale:1,wordmarkScale:1,taglineScale:1,symbolGap:1,taglineGap:1};
 const freshLogoStyles=()=>Object.fromEntries(['horizontal','portrait'].map(o=>[o,Object.fromEntries(['front','back'].map(side=>[side,{...LOGO_STYLE_DEFAULTS}]))]));
 const freshLogoVariants=()=>Object.fromEntries(['horizontal','portrait'].map(o=>[o,{front:'wm',back:'wm'}]));
 export const LOGO_VARIANTS=[{id:'wm',name:'기존 WM 로고'},{id:'officialWhite',name:'풍월관 공식 로고 · 흰색'},{id:'officialDark',name:'풍월관 공식 로고 · 검정색'}];
+export const BACKGROUND_PRESETS=[
+ {id:'solid',name:'단색'},{id:'fabric',name:'원본 블랙 새틴'},{id:'fabricNavy',name:'미드나이트 새틴'},
+ {id:'ivory',name:'아이보리 페이퍼'},{id:'graphite',name:'그라파이트'},{id:'burgundy',name:'딥 버건디'},
+ {id:'custom',name:'내 이미지'}
+];
+export const DECORATION_STYLES=[
+ {id:'none',name:'장식 없음'},{id:'frame',name:'가는 사각 테두리'},{id:'corners',name:'코너 라인'},
+ {id:'split',name:'세로 분리선'},{id:'bars',name:'상·하단 라인'},{id:'waves',name:'잔물결 라인'}
+];
+const freshBackgrounds=()=>Object.fromEntries(['horizontal','portrait'].map(o=>[o,Object.fromEntries(['front','back'].map(side=>[side,{preset:'solid',customImage:''}]))]));
+const freshDecorations=()=>Object.fromEntries(['horizontal','portrait'].map(o=>[o,Object.fromEntries(['front','back'].map(side=>[side,{style:'none',color:'#BAA48A',opacity:.65}]))]));
 export const DEFAULTS = {
   version:1, orientation:'horizontal', syncQr:true, showQr:true, showGuides:false, customFontEnabled:false,
   fields:{koreanName:'권병욱',englishName:'Kwon Byeong Wook',titleKo:'이사',titleEn:'DIRECTOR',phone:'010-0000-0000',email:'director@windmoon.example',instagram:'@windmoon.preview',addressLine1:'B1, 28-5, Donhwamun-ro 11-gil',addressLine2:'Seoul, Republic of Korea',qrUrl:'https://www.instagram.com/windmoon.preview/'},
   design:{frontBg:'#121617',frontInk:'#F4F1E8',backBg:'#F4F1E8',backInk:'#202020',muted:'#858582',rule:'#D5D4CE',nameScale:1,bodyScale:1,titleScale:1,englishScale:1,contactScale:1,addressScale:1},
-  logoStyles:freshLogoStyles(),logoVariants:freshLogoVariants(),
+  logoStyles:freshLogoStyles(),logoVariants:freshLogoVariants(),backgrounds:freshBackgrounds(),decorations:freshDecorations(),
   layouts:{horizontal:{front:{},back:{}},portrait:{front:{},back:{}}}
 };
 export function freshState(){return structuredClone(DEFAULTS);}
@@ -28,6 +39,15 @@ export function sanitizeState(raw){
   for(const o of ['horizontal','portrait'])for(const side of ['front','back']){
     const variant=raw.logoVariants?.[o]?.[side];
     if(LOGO_VARIANTS.some(option=>option.id===variant))s.logoVariants[o][side]=variant;
+  }
+  for(const o of ['horizontal','portrait'])for(const side of ['front','back']){
+    const bg=raw.backgrounds?.[o]?.[side];
+    if(BACKGROUND_PRESETS.some(x=>x.id===bg?.preset))s.backgrounds[o][side].preset=bg.preset;
+    if(typeof bg?.customImage==='string'&&bg.customImage.length<1300000&&/^data:image\/jpeg;base64,[a-zA-Z0-9+/=]+$/.test(bg.customImage))s.backgrounds[o][side].customImage=bg.customImage;
+    const deco=raw.decorations?.[o]?.[side];
+    if(DECORATION_STYLES.some(x=>x.id===deco?.style))s.decorations[o][side].style=deco.style;
+    if(/^#[0-9a-f]{6}$/i.test(deco?.color||''))s.decorations[o][side].color=deco.color;
+    if(deco?.opacity!=null)s.decorations[o][side].opacity=clamp(deco.opacity,0,1);
   }
   for(const o of ['horizontal','portrait'])for(const side of ['front','back'])for(const id of Object.keys(GROUP_NAMES)){
     const g=raw.layouts?.[o]?.[side]?.[id];
@@ -135,7 +155,14 @@ export function parseOfficialLogoSVG(source){
 export function buildScene(state,orientation,side,fonts,logos,qrFactory){
   const portrait=orientation==='portrait',w=portrait?50:90,h=portrait?90:50;
   const d=state.design,f=state.fields,groups=[];
-  const scene={orientation,side,w,h,background:side==='front'?d.frontBg:d.backBg,groups,qrError:null};
+  const bg=state.backgrounds?.[orientation]?.[side]||{preset:'solid'};
+  const solid=side==='front'?d.frontBg:d.backBg;
+  const presetColors={fabric:'#0A0A0C',fabricNavy:'#101A27',ivory:'#F4EFE5',graphite:'#1C2025',burgundy:'#301B21'};
+  const scene={orientation,side,w,h,background:presetColors[bg.preset]||solid,groups,qrError:null};
+  if(bg.preset==='fabric'||bg.preset==='fabricNavy'){
+    scene.backgroundImage=logos.fabric?.[orientation]||null;
+    if(bg.preset==='fabricNavy')scene.backgroundOverlay={color:'#132A43',opacity:.48};
+  }else if(bg.preset==='custom'&&bg.customImage)scene.backgroundImage=bg.customImage;
   let active;
   const group=id=>{active={id,label:GROUP_NAMES[id],items:[]};groups.push(active);};
   const add=i=>{active.items.push(i);return i;};
@@ -151,6 +178,28 @@ export function buildScene(state,orientation,side,fonts,logos,qrFactory){
     if(!Number.isFinite(b.x1))return;
     add({kind:'path',path:result.path,x,y,scale:1,fill,text:value,bounds:{x:x+b.x1,y:y+b.y1,w:b.x2-b.x1,h:b.y2-b.y1}});
   };
+  group('decor');
+  const deco=state.decorations?.[orientation]?.[side]||{style:'none',color:'#BAA48A',opacity:.65};
+  const dl=(x,y,x2,y2,weight=.16)=>{const l=line(x,y,x2,y2,deco.color,weight);l.opacity=deco.opacity;};
+  const ins=3.2,leg=3.4;
+  if(deco.style==='frame'){
+    dl(ins,ins,w-ins,ins);dl(w-ins,ins,w-ins,h-ins);dl(w-ins,h-ins,ins,h-ins);dl(ins,h-ins,ins,ins);
+  }else if(deco.style==='corners'){
+    for(const [x,sx] of [[ins,1],[w-ins,-1]]){
+      for(const [y,sy] of [[ins,1],[h-ins,-1]]){dl(x,y,x+sx*leg,y,.21);dl(x,y,x,y+sy*leg,.21);}
+    }
+  }else if(deco.style==='split'){
+    const x=portrait?w*.5:w*.35;dl(x,5,x,h-5,.22);
+  }else if(deco.style==='bars'){
+    dl(6,5,w-6,5,.2);dl(6,h-5,w-6,h-5,.2);
+  }else if(deco.style==='waves'){
+    for(let k=0;k<3;k++)for(let j=0;j<32;j++){
+      const x=3+j*(w-6)/32,nx=3+(j+1)*(w-6)/32;
+      const y=h-5-k*1.8-Math.sin(j/32*Math.PI*2.2)*1.15;
+      const ny=h-5-k*1.8-Math.sin((j+1)/32*Math.PI*2.2)*1.15;
+      dl(x,y,nx,ny,.15);
+    }
+  }
   const chosenLogo=state.logoVariants?.[orientation]?.[side]||'wm';
   const logoAsset=version=>chosenLogo==='officialWhite'?logos.officialWhite:chosenLogo==='officialDark'?logos.officialDark:logos[version];
   const logo=(x,y,width,colour,version='normal')=>{
@@ -185,7 +234,7 @@ export function buildScene(state,orientation,side,fonts,logos,qrFactory){
     for(const item of items){item.y+=shiftY;item.bounds.y+=shiftY;add(item);}
   };
   if(side==='front'){
-    group('logo');const width=portrait?46:80,asset=logoAsset(portrait?'portrait':'normal');
+    group('logo');const width=chosenLogo==='wm'?(portrait?46:80):(portrait?28:41),asset=logoAsset(portrait?'portrait':'normal');
     logo((w-width)/2,(h-width*asset.height/asset.width)/2,width,d.frontInk,portrait?'portrait':'normal');
   }else{
     group('logo');const width=portrait?22:24;
@@ -224,10 +273,10 @@ export function buildScene(state,orientation,side,fonts,logos,qrFactory){
 function itemSVG(i){
   if(i.kind==='path')return `<path d="${i.path}" transform="translate(${round(i.x)} ${round(i.y)}) scale(${round(i.scale)}${i.svgFlipY?' -'+round(i.scale):''})" fill="${i.fill}"/>`;
   if(i.kind==='rect')return `<rect x="${round(i.x)}" y="${round(i.y)}" width="${round(i.w)}" height="${round(i.h)}" fill="${i.fill}"/>`;
-  return `<path d="M${round(i.x)} ${round(i.y)}L${round(i.x2)} ${round(i.y2)}" stroke="${i.fill}" stroke-width="${round(i.thickness)}" fill="none"/>`;
+  return `<path d="M${round(i.x)} ${round(i.y)}L${round(i.x2)} ${round(i.y2)}" stroke="${i.fill}" stroke-width="${round(i.thickness)}" stroke-opacity="${round(i.opacity??1)}" fill="none"/>`;
 }
 export function sceneSVG(scene,{interactive=false,guides=false,selected=null}={}){
-  let out=`<svg xmlns="http://www.w3.org/2000/svg" width="${scene.w}mm" height="${scene.h}mm" viewBox="0 0 ${scene.w} ${scene.h}" role="img" aria-label="${scene.side==='front'?'앞면':'뒷면'} 명함"><title>WINDMOON | 풍월 · ${scene.side==='front'?'앞면':'뒷면'}</title><rect width="${scene.w}" height="${scene.h}" fill="${scene.background}"/>`;
+  let out=`<svg xmlns="http://www.w3.org/2000/svg" width="${scene.w}mm" height="${scene.h}mm" viewBox="0 0 ${scene.w} ${scene.h}" role="img" aria-label="${scene.side==='front'?'앞면':'뒷면'} 명함"><title>WINDMOON | 풍월 · ${scene.side==='front'?'앞면':'뒷면'}</title><rect width="${scene.w}" height="${scene.h}" fill="${scene.background}"/>${scene.backgroundImage?`<image href="${scene.backgroundImage}" x="0" y="0" width="${scene.w}" height="${scene.h}" preserveAspectRatio="xMidYMid slice"/>`:''}${scene.backgroundOverlay?`<rect width="${scene.w}" height="${scene.h}" fill="${scene.backgroundOverlay.color}" opacity="${scene.backgroundOverlay.opacity}"/>`:''}`;
   for(const g of scene.groups){
     out+=interactive?`<g data-group="${g.id}" role="button" tabindex="0" aria-label="${g.label} 배치 편집">`:'<g>';
     out+=g.items.map(itemSVG).join('');
@@ -259,10 +308,17 @@ export async function createPDF(scenes,printReady,lib){
     page.setTrimBox(origin*MM,origin*MM,s.w*MM,s.h*MM);
     if(printReady)page.setBleedBox((origin-3)*MM,(origin-3)*MM,(s.w+6)*MM,(s.h+6)*MM);
     page.drawRectangle({x:(origin-bleed)*MM,y:(origin-bleed)*MM,width:(s.w+2*bleed)*MM,height:(s.h+2*bleed)*MM,color:color(s.background)});
+    if(s.backgroundImage){
+      const input=s.backgroundImage.split(',')[1];
+      const bytes=Uint8Array.from(atob(input),c=>c.charCodeAt(0));
+      const embedded=await doc.embedJpg(bytes);
+      page.drawImage(embedded,{x:(origin-bleed)*MM,y:(origin-bleed)*MM,width:(s.w+2*bleed)*MM,height:(s.h+2*bleed)*MM});
+    }
+    if(s.backgroundOverlay)page.drawRectangle({x:(origin-bleed)*MM,y:(origin-bleed)*MM,width:(s.w+2*bleed)*MM,height:(s.h+2*bleed)*MM,color:color(s.backgroundOverlay.color),opacity:s.backgroundOverlay.opacity});
     for(const i of s.items){
       if(i.kind==='path')page.drawSvgPath(i.path,{x:(origin+i.x)*MM,y:(s.h+extra-origin-i.y)*MM,scale:i.scale*MM,color:color(i.fill)});
       else if(i.kind==='rect')page.drawRectangle({x:(origin+i.x)*MM,y:(s.h+extra-origin-i.y-i.h)*MM,width:i.w*MM,height:i.h*MM,color:color(i.fill)});
-      else page.drawLine({start:{x:(origin+i.x)*MM,y:(s.h+extra-origin-i.y)*MM},end:{x:(origin+i.x2)*MM,y:(s.h+extra-origin-i.y2)*MM},thickness:i.thickness*MM,color:color(i.fill)});
+      else page.drawLine({start:{x:(origin+i.x)*MM,y:(s.h+extra-origin-i.y)*MM},end:{x:(origin+i.x2)*MM,y:(s.h+extra-origin-i.y2)*MM},thickness:i.thickness*MM,color:color(i.fill),opacity:i.opacity??1});
     }
     if(printReady){
       const crop=(x,y,x2,y2)=>page.drawLine({start:{x:x*MM,y:y*MM},end:{x:x2*MM,y:y2*MM},thickness:.25,color:rgb(0,0,0)});

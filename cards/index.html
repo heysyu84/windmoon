@@ -7,11 +7,11 @@
   <title>WINDMOON — 명함 편집실</title>
   <meta name="description" content="풍월의 가로·세로 명함을 직접 편집하고 인스타그램 QR과 인쇄용 파일을 완성하세요.">
   <link rel="icon" href="../favicon.svg?v=20261022-wave" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261110-design-v2">
   <script src="assets/opentype.min.js" defer></script>
   <script src="assets/qrcode.js" defer></script>
   <script src="assets/pdf-lib.min.js" defer></script>
-  <script type="module" src="app.js?v=20261110-official-logos-v1"></script>
+  <script type="module" src="app.js?v=20261110-design-v2"></script>
   <link rel="stylesheet" href="../suite.css?v=20261022-typelogo-v3">
   <script type="module" src="../suite-nav.js?v=20261029-domain"></script>
 </head>
@@ -23,8 +23,52 @@
   <main class="studio">
     <aside class="editor" aria-label="명함 편집 설정" tabindex="0">
       <div class="editor-intro"><span class="small-caps">EDIT YOUR CARD</span><p>정보를 입력하고<br>나만의 명함을 완성하세요.</p></div>
+      <details id="designSection" class="section" open>
+        <summary><span class="section-number">01</span><span>디자인 · 배경 · 장식</span><span class="chevron">⌄</span></summary>
+        <div class="section-content">
+          <p class="tool-subtitle">디자인 템플릿</p>
+          <div class="card-template-grid" role="group" aria-label="명함 디자인 템플릿">
+            <button type="button" data-card-template="fabricModern" class="card-template">
+              <span class="card-template-swatch swatch-fabric"></span><strong>모던 새틴</strong><small>양면 블랙</small>
+            </button>
+            <button type="button" data-card-template="dualTone" class="card-template">
+              <span class="card-template-swatch swatch-dual"></span><strong>듀얼톤</strong><small>블랙 · 아이보리</small>
+            </button>
+            <button type="button" data-card-template="minimal" class="card-template">
+              <span class="card-template-swatch swatch-minimal"></span><strong>미니멀</strong><small>차콜 · 페이퍼</small>
+            </button>
+            <button type="button" data-card-template="burgundy" class="card-template">
+              <span class="card-template-swatch swatch-burgundy"></span><strong>버건디</strong><small>다크 · 크림</small>
+            </button>
+          </div>
+          <div class="field-pair">
+            <label>편집할 면<select id="backgroundSide"><option value="front">앞면</option><option value="back">뒷면</option></select></label>
+            <label>배경 종류<select id="backgroundPreset">
+              <option value="solid">단색</option><option value="fabric">원본 블랙 새틴</option><option value="fabricNavy">미드나이트 새틴</option>
+              <option value="ivory">아이보리 페이퍼</option><option value="graphite">그라파이트</option><option value="burgundy">딥 버건디</option>
+              <option value="custom">내 이미지</option>
+            </select></label>
+          </div>
+          <div class="background-upload-row">
+            <button id="backgroundImageButton" class="button subtle" type="button">+ 배경 이미지 추가</button>
+            <span id="backgroundImageStatus" class="field-help">이미지 없음</span>
+            <input type="file" id="backgroundImageFile" accept="image/jpeg,image/png,image/webp" hidden>
+          </div>
+          <div id="backgroundCustomTools" hidden><button id="backgroundImageClear" type="button" class="text-link">직접 추가한 배경 해제</button></div>
+          <p class="tool-subtitle">꾸밈 요소</p>
+          <label>장식 스타일<select id="decorationStyle">
+            <option value="none">장식 없음</option><option value="frame">얇은 사각 테두리</option><option value="corners">코너 라인</option>
+            <option value="split">세로 분리선</option><option value="bars">상·하단 라인</option><option value="waves">잔물결 라인</option>
+          </select></label>
+          <div class="field-pair">
+            <label class="designer-color-label">장식 색상<input type="color" id="decorationColor" value="#BAA48A"></label>
+            <label class="range-label designer-opacity-label"><span>장식 농도 <output id="decorationOpacityValue">65%</output></span><input type="range" id="decorationOpacity" min="0" max="100" step="5" value="65"></label>
+          </div>
+          <p class="field-help">배경·장식은 앞면과 뒷면에 각각 적용됩니다. SVG·PDF 내보내기에도 반영됩니다.</p>
+        </div>
+      </details>
       <details id="logoSection" class="section" open>
-        <summary><span class="section-number">01</span><span>로고 크기·정렬</span><span class="chevron">⌄</span></summary>
+        <summary><span class="section-number">02</span><span>로고 크기·정렬</span><span class="chevron">⌄</span></summary>
         <div class="section-content">
           <label>로고를 편집할 면<select id="logoSide"><option value="front">앞면 로고</option><option value="back">뒷면 로고</option></select></label>
           <label>로고 디자인<select id="logoVariant"><option value="wm">기존 WM 로고</option><option value="officialWhite">풍월관 공식 로고 · 흰색</option><option value="officialDark">풍월관 공식 로고 · 검정색</option></select></label>
@@ -46,23 +90,23 @@
         </div>
       </details>
       <details class="section" open>
-        <summary><span class="section-number">02</span><span>이름과 직책</span><span class="chevron">⌄</span></summary>
+        <summary><span class="section-number">03</span><span>이름과 직책</span><span class="chevron">⌄</span></summary>
         <div class="section-content"><label>한글 이름<input data-field="koreanName" maxlength="60" autocomplete="off"></label><label>영문 이름<input data-field="englishName" maxlength="100" autocomplete="off"></label><div class="field-pair"><label>직책 · 한글<input data-field="titleKo" maxlength="30" autocomplete="off"></label><label>직책 · 영문<input data-field="titleEn" maxlength="50" autocomplete="off"></label></div></div>
       </details>
       <details class="section" open>
-        <summary><span class="section-number">03</span><span>연락처와 QR</span><span class="chevron">⌄</span></summary>
+        <summary><span class="section-number">04</span><span>연락처와 QR</span><span class="chevron">⌄</span></summary>
         <div class="section-content"><label>전화번호<input data-field="phone" maxlength="60" inputmode="tel" autocomplete="off"></label><label>이메일<input data-field="email" maxlength="100" inputmode="email" autocomplete="off"></label><label>인스타그램<input data-field="instagram" maxlength="100" autocomplete="off" spellcheck="false"></label><label class="check-row"><input type="checkbox" id="syncQr">인스타 계정과 QR 주소 연동</label><label>QR 연결 주소<input data-field="qrUrl" maxlength="500" inputmode="url" autocomplete="off" spellcheck="false"><span id="qrHelp" class="field-help">입력한 주소에 맞춰 QR이 자동 생성됩니다.</span></label><div class="inline-options"><label class="check-row"><input id="showQr" type="checkbox">명함에 QR 표시</label><a id="qrLink" class="text-link" target="_blank" rel="noopener noreferrer">연결 확인 ↗</a></div></div>
       </details>
       <details class="section">
-        <summary><span class="section-number">04</span><span>주소</span><span class="chevron">⌄</span></summary>
+        <summary><span class="section-number">05</span><span>주소</span><span class="chevron">⌄</span></summary>
         <div class="section-content"><label>주소 · 첫째 줄<input data-field="addressLine1" maxlength="120" autocomplete="off"></label><label>주소 · 둘째 줄<input data-field="addressLine2" maxlength="120" autocomplete="off"></label></div>
       </details>
       <details class="section">
-        <summary><span class="section-number">05</span><span>색상과 글자</span><span class="chevron">⌄</span></summary>
+        <summary><span class="section-number">06</span><span>색상과 글자</span><span class="chevron">⌄</span></summary>
         <div class="section-content"><div class="preset-list" role="group" aria-label="색상 프리셋"><button class="palette" data-palette="classic"><span class="swatches"><i style="background:#121617"></i><i style="background:#F4F1E8"></i></span>차콜·아이보리</button><button class="palette" data-palette="midnight"><span class="swatches"><i style="background:#152D36"></i><i style="background:#ECE4D6"></i></span>미드나이트</button><button class="palette" data-palette="mono"><span class="swatches"><i style="background:#151515"></i><i style="background:#FFFFFF"></i></span>흑백</button></div><div class="color-grid"><label><input type="color" data-color="frontBg"><span>앞면 배경</span></label><label><input type="color" data-color="frontInk"><span>앞면 로고</span></label><label><input type="color" data-color="backBg"><span>뒷면 배경</span></label><label><input type="color" data-color="backInk"><span>뒷면 글자</span></label><label><input type="color" data-color="muted"><span>보조 글자</span></label><label><input type="color" data-color="rule"><span>구분선</span></label></div><label class="range-label"><span>한글 이름 크기<output id="nameScaleValue">100%</output></span><input type="range" id="nameScale" min="60" max="160" step="1"></label><label class="range-label"><span>본문 전체 크기<output id="bodyScaleValue">100%</output></span><input type="range" id="bodyScale" min="60" max="160" step="1"></label><label class="range-label"><span>직책 크기<output id="titleScaleValue">100%</output></span><input type="range" id="titleScale" min="50" max="200" step="1" value="100"></label><label class="range-label"><span>영문 이름 크기<output id="englishScaleValue">100%</output></span><input type="range" id="englishScale" min="50" max="200" step="1" value="100"></label><label class="range-label"><span>연락처 크기<output id="contactScaleValue">100%</output></span><input type="range" id="contactScale" min="50" max="200" step="1" value="100"></label><label class="range-label"><span>주소 크기<output id="addressScaleValue">100%</output></span><input type="range" id="addressScale" min="50" max="200" step="1" value="100"></label><div class="font-row"><div><span class="label-text">편집 글꼴</span><p id="fontName">Pretendard</p></div><button id="fontButton" class="button subtle">내 폰트 넣기</button></div><input type="file" id="fontFile" accept=".ttf,.otf" hidden><button id="fontReset" class="text-link" hidden>Pretendard로 돌아가기</button><p class="field-help">TTF·OTF 지원. 새 폰트에 없는 한글은 Pretendard로 표시합니다. 로고의 글자 형태는 유지됩니다.</p></div>
       </details>
       <details id="layoutSection" class="section">
-        <summary><span class="section-number">06</span><span>선택 요소 배치</span><span class="chevron">⌄</span></summary>
+        <summary><span class="section-number">07</span><span>선택 요소 배치</span><span class="chevron">⌄</span></summary>
         <div class="section-content"><p id="selectionHint" class="field-help">명함의 로고나 글자를 눌러 선택하세요.<br>드래그하거나 이동 값을 입력할 수 있습니다.</p><div class="field-pair"><label>편집 면<select id="layoutSide"><option value="front">앞면</option><option value="back">뒷면</option></select></label><label>요소<select id="layoutGroup"><option value="logo">로고</option></select></label></div><div class="field-pair"><label>가로 이동 · mm<input id="offsetX" type="number" min="-60" max="60" step="0.2" value="0"></label><label>세로 이동 · mm<input id="offsetY" type="number" min="-100" max="100" step="0.2" value="0"></label></div><label class="range-label"><span>요소 크기<output id="groupScaleValue">100%</output></span><input id="groupScale" type="range" min="50" max="180" step="1" value="100"></label><div class="alignment-buttons" role="group" aria-label="선택 요소 좌우 정렬"><button class="button subtle" data-align-x="left" aria-pressed="false">좌측</button><button class="button subtle" data-align-x="center" aria-pressed="false">좌우 중앙</button><button class="button subtle" data-align-x="right" aria-pressed="false">우측</button></div><div class="alignment-buttons" role="group" aria-label="선택 요소 상하 정렬"><button class="button subtle" data-align-y="top" aria-pressed="false">상단</button><button class="button subtle" data-align-y="center" aria-pressed="false">상하 중앙</button><button class="button subtle" data-align-y="bottom" aria-pressed="false">하단</button></div><p id="selectionSize" class="field-help"></p><button id="resetGroup" class="button subtle">이 요소의 배치 초기화</button><p class="field-help">방향키로 0.2mm, Shift + 방향키로 1mm 이동합니다.</p></div>
       </details>
       <div class="settings-actions"><button id="saveSettings" class="button subtle">설정 저장</button><button id="loadSettings" class="button subtle">설정 불러오기</button><input type="file" id="settingsFile" accept=".json" hidden><button id="resetAll" class="text-link muted-link">처음 시안으로 초기화</button></div>

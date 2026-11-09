@@ -1,4 +1,4 @@
-import {DEFAULTS,GROUP_NAMES,LOGO_STYLE_DEFAULTS,freshState,sanitizeState,instagramURL,normalizeURL,buildScene,sceneSVG,sceneWarnings,createPDF,sampleFields,parseOfficialLogoSVG} from './core.js?v=20261110-official-logos-v1';
+import {DEFAULTS,GROUP_NAMES,LOGO_STYLE_DEFAULTS,freshState,sanitizeState,instagramURL,normalizeURL,buildScene,sceneSVG,sceneWarnings,createPDF,sampleFields,parseOfficialLogoSVG,BACKGROUND_PRESETS,DECORATION_STYLES} from './core.js?v=20261110-backgrounds-v2';
 import {zipBytes,pngWith300DPI,download} from './files.js';
 
 const $=id=>document.getElementById(id),KEY='windmoon-card-studio-v1';
@@ -36,6 +36,40 @@ function resizeSelection(sel,value){
   selected=sel;commit(s=>{s.layouts[s.orientation][sel.side][sel.id]=next;});
 }
 const logoSelection=()=>({side:$('logoSide').value||'front',id:'logo'});
+const backgroundSide=()=>($('backgroundSide')?.value||'front');
+const sideBackground=()=>state.backgrounds[state.orientation][backgroundSide()];
+const sideDecoration=()=>state.decorations[state.orientation][backgroundSide()];
+const presetAppearance={
+ fabric:{bg:'#101010',ink:'#FFFFFF'},fabricNavy:{bg:'#101C2D',ink:'#F7F4EC'},
+ ivory:{bg:'#F4EFE5',ink:'#241C1A'},graphite:{bg:'#1C2025',ink:'#F8F6F1'},
+ burgundy:{bg:'#301B21',ink:'#F7EDE4'}
+};
+const templateStyles={
+ fabricModern:{front:'fabric',back:'fabric',logos:['officialWhite','officialWhite'],decor:['none','split'],ink:'#F8F4EE',muted:'#C8B49C',rule:'#C4A989'},
+ dualTone:{front:'fabric',back:'ivory',logos:['officialWhite','officialDark'],decor:['none','split'],ink:'#25201E',muted:'#866D5A',rule:'#BDA181'},
+ minimal:{front:'graphite',back:'ivory',logos:['officialWhite','officialDark'],decor:['none','none'],ink:'#241F1D',muted:'#78706A',rule:'#C2B5A4'},
+ burgundy:{front:'burgundy',back:'ivory',logos:['officialWhite','officialDark'],decor:['corners','split'],ink:'#261C1A',muted:'#947C75',rule:'#B99E81'}
+};
+function applyTemplate(id){
+ const style=templateStyles[id];if(!style)return;
+ selected=null;
+ commit(s=>{
+  for(const o of ['horizontal','portrait'])for(const [i,side] of ['front','back'].entries()){
+   s.backgrounds[o][side].preset=style[side];
+   s.decorations[o][side].style=style.decor[i];
+   s.decorations[o][side].opacity=.7;
+   s.decorations[o][side].color='#C8AA83';
+   s.logoVariants[o][side]=style.logos[i];
+  }
+  s.design.frontBg=presetAppearance[style.front]?.bg||'#111111';
+  s.design.backBg=presetAppearance[style.back]?.bg||'#F4EFE5';
+  s.design.frontInk=presetAppearance[style.front]?.ink||'#FFFFFF';
+  s.design.backInk=presetAppearance[style.back]?.ink||style.ink;
+  s.design.muted=style.muted;s.design.rule=style.rule;
+ });
+ toast('디자인 템플릿을 적용했습니다.');
+}
+
 function syncControls(){
   for(const el of document.querySelectorAll('[data-field]'))if(document.activeElement!==el)el.value=state.fields[el.dataset.field];
   for(const k of ['syncQr','showQr','showGuides'])$(k).checked=state[k];
@@ -44,6 +78,13 @@ function syncControls(){
   for(const id of designScaleIds){$(id).value=Math.round(state.design[id]*100);$(id+'Value').textContent=Math.round(state.design[id]*100)+'%';}
   const sel=effectiveSelection();$('layoutSide').value=sel.side;
   $('logoSide').value=sel.side;
+  const activeBg=sideBackground(),activeDecor=sideDecoration();
+  $('backgroundPreset').value=activeBg.preset;$('decorationStyle').value=activeDecor.style;
+  $('decorationColor').value=activeDecor.color;
+  $('decorationOpacity').value=Math.round(activeDecor.opacity*100);
+  $('decorationOpacityValue').textContent=Math.round(activeDecor.opacity*100)+'%';
+  $('backgroundCustomTools').hidden=activeBg.preset!=='custom';
+  $('backgroundImageStatus').textContent=activeBg.customImage?'내 배경 이미지 등록됨':'이미지 없음';
   const logoVariant=state.logoVariants[state.orientation][sel.side];$('logoVariant').value=logoVariant;
   const style=state.logoStyles[state.orientation][sel.side],logoSel={side:sel.side,id:'logo'},logoLayout=layout(logoSel),logoGroup=groupFor(logoSel);
   for(const el of document.querySelectorAll('[data-logo-style]'))if(document.activeElement!==el)el.value=Math.round(style[el.dataset.logoStyle]*100);
@@ -55,7 +96,7 @@ function syncControls(){
     el.disabled=!ready||logoVariant!=='wm';
     const row=el.closest('.component-control');if(row)row.style.display=logoVariant==='wm'?'':'none';
   }
-  const ids=sel.side==='front'?['logo']:['logo','identity','contacts','address',...(state.showQr?['qr']:[]),'rule'];
+  const ids=sel.side==='front'?['logo','decor']:['logo','decor','identity','contacts','address',...(state.showQr?['qr']:[]),'rule'];
   $('layoutGroup').innerHTML=ids.map(id=>`<option value="${id}">${GROUP_NAMES[id]}</option>`).join('');
   $('layoutGroup').value=ids.includes(sel.id)?sel.id:'logo';
   const l=layout();
@@ -97,6 +138,58 @@ const palettes={classic:{frontBg:'#121617',frontInk:'#F4F1E8',backBg:'#F4F1E8',b
 document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>commit(s=>Object.assign(s.design,palettes[b.dataset.palette]))));
 for(const id of designScaleIds)$(id).addEventListener('input',()=>commit(s=>s.design[id]=Number($(id).value)/100));
 $('logoSide').addEventListener('change',()=>select($('logoSide').value,'logo'));
+$('backgroundSide').addEventListener('change',syncControls);
+$('backgroundPreset').addEventListener('change',()=>{
+ const side=backgroundSide(),preset=$('backgroundPreset').value;
+ commit(s=>{
+  s.backgrounds[s.orientation][side].preset=preset;
+  const palette=presetAppearance[preset];
+  if(palette){s.design[side==='front'?'frontBg':'backBg']=palette.bg;s.design[side==='front'?'frontInk':'backInk']=palette.ink;}
+ });
+ if(preset==='custom'&&!sideBackground().customImage)$('backgroundImageFile').click();
+});
+$('decorationStyle').addEventListener('change',()=>{
+ const side=backgroundSide(),value=$('decorationStyle').value;
+ commit(s=>s.decorations[s.orientation][side].style=value);
+});
+$('decorationColor').addEventListener('input',()=>{
+ const side=backgroundSide(),value=$('decorationColor').value;
+ commit(s=>s.decorations[s.orientation][side].color=value);
+});
+$('decorationOpacity').addEventListener('input',()=>{
+ const side=backgroundSide(),value=Number($('decorationOpacity').value)/100;
+ commit(s=>s.decorations[s.orientation][side].opacity=value);
+});
+document.querySelectorAll('[data-card-template]').forEach(button=>button.addEventListener('click',()=>applyTemplate(button.dataset.cardTemplate)));
+$('backgroundImageButton').addEventListener('click',()=>$('backgroundImageFile').click());
+$('backgroundImageClear').addEventListener('click',()=>{
+ const side=backgroundSide();
+ commit(s=>{s.backgrounds[s.orientation][side]={preset:'solid',customImage:''};});
+ toast('직접 추가한 배경을 해제했습니다.');
+});
+$('backgroundImageFile').addEventListener('change',async()=>{
+ const file=$('backgroundImageFile').files?.[0];if(!file)return;
+ try{
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('JPG·PNG·WEBP 이미지만 사용할 수 있습니다.');
+  if(file.size>12*1024*1024)throw Error('이미지는 12MB 이하여야 합니다.');
+  const url=URL.createObjectURL(file),image=new Image();
+  try{image.src=url;await image.decode();}finally{URL.revokeObjectURL(url);}
+  const portrait=state.orientation==='portrait',w=portrait?650:1080,h=portrait?1170:600;
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d');if(!ctx)throw Error('이미지를 처리할 수 없습니다.');
+  ctx.fillStyle='#111111';ctx.fillRect(0,0,w,h);
+  const factor=Math.max(w/image.naturalWidth,h/image.naturalHeight),iw=image.naturalWidth*factor,ih=image.naturalHeight*factor;
+  ctx.drawImage(image,(w-iw)/2,(h-ih)/2,iw,ih);
+  let data=canvas.toDataURL('image/jpeg',.79);
+  if(data.length>1100000)data=canvas.toDataURL('image/jpeg',.55);
+  if(data.length>1200000)throw Error('이미지가 너무 복잡합니다. 크기가 작은 파일을 선택해 주세요.');
+  const side=backgroundSide();
+  commit(s=>{s.backgrounds[s.orientation][side]={preset:'custom',customImage:data};});
+  toast('배경 이미지를 적용했습니다.');
+ }catch(error){toast(error.message||'배경 이미지를 읽을 수 없습니다.',true);}
+ finally{$('backgroundImageFile').value='';}
+});
+
 $('logoVariant').addEventListener('change',()=>{
   const side=$('logoSide').value,variant=$('logoVariant').value;
   selected={side,id:'logo'};
@@ -241,8 +334,8 @@ async function waitForLibraries(){if(window.opentype&&window.qrcode&&window.PDFL
 async function init(){
   syncControls();render();
   try{
-    const response=await Promise.all(['assets/Pretendard-regular.ttf','assets/Pretendard-bold.ttf','assets/logo.json','assets/pungwolgwan_official_white.svg','assets/pungwolgwan_official_dark.svg'].map(async url=>{const r=await fetch(url);if(!r.ok)throw new Error('디자인 자산을 불러오지 못했습니다.');return url.endsWith('.json')?r.json():url.endsWith('.svg')?r.text():r.arrayBuffer();}));
-    await waitForLibraries();fonts={regular:window.opentype.parse(response[0]),bold:window.opentype.parse(response[1]),custom:null};logos={...response[2],officialWhite:parseOfficialLogoSVG(response[3]),officialDark:parseOfficialLogoSVG(response[4])};
+    const response=await Promise.all(['assets/Pretendard-regular.ttf','assets/Pretendard-bold.ttf','assets/logo.json','assets/pungwolgwan_official_white.svg','assets/pungwolgwan_official_dark.svg','assets/fabric-black-wide.jpg','assets/fabric-black-portrait.jpg'].map(async url=>{const r=await fetch(url);if(!r.ok)throw new Error('디자인 자산을 불러오지 못했습니다.');return url.endsWith('.json')?r.json():url.endsWith('.svg')?r.text():r.arrayBuffer();}));
+    await waitForLibraries();fonts={regular:window.opentype.parse(response[0]),bold:window.opentype.parse(response[1]),custom:null};logos={...response[2],officialWhite:parseOfficialLogoSVG(response[3]),officialDark:parseOfficialLogoSVG(response[4]),fabric:{horizontal:'data:image/jpeg;base64,'+toBase64(response[5]),portrait:'data:image/jpeg;base64,'+toBase64(response[6])}};
     if(state.customFontEnabled){try{const stored=await fontDB('get');if(stored?.bytes){fonts.custom=window.opentype.parse(stored.bytes);customFontData=stored;}else state.customFontEnabled=false;}catch{state.customFontEnabled=false;}}
     ready=true;render();syncControls();persist();
     window.windmoonStudio={getState:()=>structuredClone(state),getScenes:()=>scenes,exportFile};
