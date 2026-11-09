@@ -120,12 +120,12 @@ export function parseOfficialLogoSVG(source){
   const xml=new DOMParser().parseFromString(source,'image/svg+xml');
   const root=xml.documentElement;
   if(root.localName!=='svg'||xml.getElementsByTagName('parsererror').length)throw new Error('공식 로고 SVG를 읽을 수 없습니다.');
-  const box=(root.getAttribute('viewBox')||'').trim().split(/[\\s,]+/).map(Number);
+  const box=(root.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
   if(box.length!==4||!box.every(Number.isFinite)||box[2]<=0||box[3]<=0)throw new Error('공식 로고의 크기를 확인할 수 없습니다.');
   const paths=[...root.getElementsByTagName('path')];
   if(!paths.length||paths.length>80)throw new Error('공식 로고 벡터 경로를 확인해 주세요.');
   const shapes=paths.map(path=>{
-    const matrix=(path.getAttribute('transform')||'').match(/^matrix\\(\\s*1\\s*,\\s*0\\s*,\\s*0\\s*,\\s*-1\\s*,\\s*([+-]?(?:[0-9]*[.])?[0-9]+)\\s*,\\s*([+-]?(?:[0-9]*[.])?[0-9]+)\\s*\\)$/);
+    const matrix=(path.getAttribute('transform')||'').match(/^matrix\(\s*1\s*,\s*0\s*,\s*0\s*,\s*-1\s*,\s*([+-]?(?:[0-9]*[.])?[0-9]+)\s*,\s*([+-]?(?:[0-9]*[.])?[0-9]+)\s*\)$/);
     const color=path.getAttribute('fill')||'',d=path.getAttribute('d')||'';
     if(!matrix||!/^#[0-9a-fA-F]{6}$/.test(color)||!d)throw new Error('공식 로고의 벡터 형식이 올바르지 않습니다.');
     return {path:d,x:Number(matrix[1])-box[0],y:Number(matrix[2])-box[1],fill:color};
