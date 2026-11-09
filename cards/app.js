@@ -66,6 +66,19 @@ function applyTemplate(id){
   s.design.frontInk=presetAppearance[style.front]?.ink||'#FFFFFF';
   s.design.backInk=presetAppearance[style.back]?.ink||style.ink;
   s.design.muted=style.muted;s.design.rule=style.rule;
+  // Only selecting a full template changes the layout. Ordinary background
+  // and decoration edits leave every carefully positioned element untouched.
+  if(id==='fabricModern'||id==='dualTone'){
+    const back=s.layouts.horizontal.back;
+    Object.assign(back,{
+      logo:{dx:-52,dy:3,scale:.75},
+      identity:{dx:27,dy:-.2,scale:.80},
+      rule:{dx:27,dy:-2.5,scale:.67},
+      contacts:{dx:27,dy:-2,scale:.83},
+      address:{dx:27,dy:-1.6,scale:.83},
+      qr:{dx:-54,dy:3.1,scale:.68}
+    });
+  }
  });
  toast('디자인 템플릿을 적용했습니다.');
 }
