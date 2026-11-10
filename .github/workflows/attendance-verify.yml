@@ -30,6 +30,13 @@ jobs:
           assert.match(html,/credentials:'omit'/);
           assert.doesNotMatch(html,/location\.hash/);
           assert.match(html,/<meta name="robots" content="noindex/);
+          // Native iOS date inputs have intrinsic minimum widths. On phone-sized
+          // viewports the range must stack into one full-width column.
+          assert.match(html,/\.field input\{[^}]*min-width:0;max-width:100%/);
+          assert.match(html,/@media\(max-width:660px\)\{[^}]*\.period\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
+          assert.match(html,/\.period-actions\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+          assert.match(html,/type="date" id="from"/);
+          assert.match(html,/type="date" id="to"/);
           assert.doesNotMatch(html,/\b(password|residentId|accountNumber|salary|payroll)\b/i);
           const appList = JSON.parse(fs.readFileSync('modules.json','utf8'));
           assert.deepEqual(appList.slice(0,2).map(m=>m.id),['staff','attendance']);
