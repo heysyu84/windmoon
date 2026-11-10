@@ -1,10 +1,10 @@
 name: Verify standalone attendance page
 on:
   pull_request:
-    paths: ['attendance/**', '.github/workflows/attendance-verify.yml']
+    paths: ['attendance/**', 'portal.js', 'modules.json', '.github/workflows/attendance-verify.yml']
   push:
     branches: [main]
-    paths: ['attendance/**', '.github/workflows/attendance-verify.yml']
+    paths: ['attendance/**', 'portal.js', 'modules.json', '.github/workflows/attendance-verify.yml']
 permissions:
   contents: read
 jobs:
@@ -30,5 +30,16 @@ jobs:
           assert.match(html,/location\.hash/);
           assert.match(html,/<meta name="robots" content="noindex/);
           assert.doesNotMatch(html,/\b(password|residentId|accountNumber|salary|payroll)\b/i);
-          console.log('Standalone attendance page syntax and public-field checks passed');
+          const appList = JSON.parse(fs.readFileSync('modules.json','utf8'));
+          assert.deepEqual(appList.slice(0,2).map(m=>m.id),['staff','attendance']);
+          assert.equal(appList[0].group,'매장 운영');
+          assert.equal(appList[1].group,'매장 운영');
+          assert.equal(appList[1].href,'attendance/');
+          assert.equal(appList[1].icon,'calendar');
+          const homeJs = fs.readFileSync('portal.js','utf8');
+          new vm.Script(homeJs,{filename:'portal.js'});
+          assert.match(homeJs,/calendar:/);
+          assert.doesNotMatch(homeJs,/#key=|Bearer /);
+          assert.doesNotMatch(JSON.stringify(appList),/#key=|Bearer /);
+          console.log('Homepage placement and attendance page syntax/privacy checks passed');
           NODE
