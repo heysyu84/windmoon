@@ -37,7 +37,7 @@ jobs:
           assert.equal(appList[1].href,'attendance/');
           assert.equal(appList[1].icon,'calendar');
           const homeJs = fs.readFileSync('portal.js','utf8');
-          new vm.Script(homeJs,{filename:'portal.js'});
+          new vm.Script('(async()=>{\n'+homeJs+'\n})()',{filename:'portal.js'});
           assert.match(homeJs,/calendar:/);
           assert.doesNotMatch(homeJs,/#key=|Bearer /);
           assert.doesNotMatch(JSON.stringify(appList),/#key=|Bearer /);
