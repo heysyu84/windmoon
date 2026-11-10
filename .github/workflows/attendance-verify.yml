@@ -38,6 +38,10 @@ jobs:
           assert.match(html,/\.period-actions\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
           assert.match(html,/type="date" id="from"/);
           assert.match(html,/type="date" id="to"/);
+          assert.match(html,/<span class="date-input-frame"><input type="date" id="from" required><\/span>/);
+          assert.match(html,/<span class="date-input-frame"><input type="date" id="to" required><\/span>/);
+          assert.match(mobileCss,/\.date-input-frame\{[^}]*width:100%;[^}]*overflow:hidden/);
+          assert.match(mobileCss,/\.field input\{[^}]*inline-size:100%;max-inline-size:100%;[^}]*border:0/);
           assert.doesNotMatch(html,/\b(password|residentId|accountNumber|salary|payroll)\b/i);
           const appList = JSON.parse(fs.readFileSync('modules.json','utf8'));
           assert.deepEqual(appList.slice(0,2).map(m=>m.id),['staff','attendance']);
