@@ -9,6 +9,15 @@
     "href": "staff/#ops-overview"
   },
   {
+    "id": "attendance",
+    "name": "근무일 조회",
+    "english": "STAFF ATTENDANCE",
+    "description": "직원별 근무 날짜와 근무일수를 확인하세요. 처음에는 공유 링크가 필요합니다.",
+    "group": "매장 운영",
+    "icon": "calendar",
+    "href": "attendance/"
+  },
+  {
     "id": "menu",
     "name": "메뉴판 편집",
     "english": "MENU STUDIO",
@@ -36,4 +45,3 @@
     "href": "recipes/"
   }
 ]
-

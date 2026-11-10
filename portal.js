@@ -1,10 +1,10 @@
-const paths={users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.9"/><circle cx="9" cy="7" r="4"/><path d="M16 3.2a4 4 0 0 1 0 7.6"/>',wallet:'<path d="M21 8V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h16v10H5a3 3 0 0 1-3-3V7M21 12h-5v5h5"/>',menu:'<path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3ZM8 7h8M8 11h8M8 15h4"/>',card:'<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c.5-3 5.5-3 6 0M14 10h5M14 14h4"/>',glass:'<path d="m3 3 9 10L21 3ZM12 13v8M7 21h10M6 6h12"/>'};
+const paths={users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.9"/><circle cx="9" cy="7" r="4"/><path d="M16 3.2a4 4 0 0 1 0 7.6"/>',wallet:'<path d="M21 8V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h16v10H5a3 3 0 0 1-3-3V7M21 12h-5v5h5"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18m-13 4h3m-3 4h8"/>',menu:'<path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3ZM8 7h8M8 11h8M8 15h4"/>',card:'<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c.5-3 5.5-3 6 0M14 10h5M14 14h4"/>',glass:'<path d="m3 3 9 10L21 3ZM12 13v8M7 21h10M6 6h12"/>'};
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon=(name,size=22)=>`<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]||paths.menu}</svg>`;
 const container=document.querySelector('#modules');let modules=[];
 const appHref = m => m.href;
 document.querySelector('#today').textContent=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'short'}).format(new Date());
-const labels={staff:'직원 · 근무 · 급여 · 매출 · 지출',operations:'일마감 · 매출 · 지출',menu:'A3 메뉴판 편집',cards:'명함 디자인 · 내보내기',recipes:'제조법 · 재료 · 즐겨찾기'};
+const labels={staff:'직원 · 근무 · 급여 · 매출 · 지출',operations:'일마감 · 매출 · 지출',attendance:'공유 링크 · 근무일 확인',menu:'A3 메뉴판 편집',cards:'명함 디자인 · 내보내기',recipes:'제조법 · 재료 · 즐겨찾기'};
 function render(query=''){
  const matching=modules.filter(m=>[m.name,m.english,m.description,m.group].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
  const arrow='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
