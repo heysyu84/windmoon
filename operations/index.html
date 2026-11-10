@@ -1,2 +1,14 @@
-<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WINDMOON · WORKSPACE</title><script>const pages=['overview','report','closing','sales','expenses','payroll','funds'];const page=location.hash.slice(1);location.replace('../staff/#ops-'+(pages.includes(page)?page:'overview'));</script><a href="../staff/#ops-overview">통합 워크스페이스 열기</a></html>
-
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WINDMOON · WORKSPACE</title>
+  <script>
+    const pages = ['overview', 'report', 'closing', 'sales', 'expenses', 'payroll', 'funds'];
+    const page = location.hash.slice(1).replace(/^ops-/, '');
+    location.replace('../staff/#ops-' + (pages.includes(page) ? page : 'overview'));
+  </script>
+</head>
+<body><a href="../staff/#ops-overview">통합 워크스페이스 열기</a></body>
+</html>
