@@ -39,6 +39,14 @@
     .mini{height:44px;min-width:42px;border-radius:10px;border:1px solid #d7e1d8;background:#f7faf7;color:#183b2a;font-weight:700}
     .go{min-height:44px;border:0;border-radius:10px;padding:0 20px;background:#193a2d;color:white;font-weight:700}
     .hint{font-size:12px;color:#7e8981;margin:12px 0 0}
+    [hidden]{display:none!important}
+    .share-access{margin-top:22px;background:#edf3ee;border:1px solid #d0dfd3;border-radius:16px;padding:19px}
+    .share-access h2{font-size:16px;color:#294634;margin:0 0 5px}
+    .share-access p{color:#63786b;font-size:13px;line-height:1.7;margin:0 0 12px}
+    .share-form{display:flex;gap:8px;flex-wrap:wrap}
+    .share-form input{flex:1 1 230px;min-width:0;border:1px solid #d4dfd5;border-radius:10px;padding:11px 13px;background:#fff;font-size:13px}
+    .share-form button{border:0;background:#244d36;color:#fff;border-radius:10px;padding:11px 16px;font-weight:700}
+    .share-form-error{color:#9d3a3a!important;margin-top:8px!important}
     .results-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:32px}
     h2{margin:0;font-size:20px;letter-spacing:-.04em}
     .summary{font-size:13px;color:#64776b}
@@ -79,6 +87,15 @@
         <h1 id="heading">근무일 조회</h1>
         <p class="lead" id="description">기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.</p>
       </section>
+      <section class="share-access" id="shareAccess" hidden aria-labelledby="shareHeading">
+        <h2 id="shareHeading">처음 이용하시나요?</h2>
+        <p id="shareHelp">관리자에게 받은 근무일 조회 링크를 붙여넣으면 이 기기에서 다음부터 바로 열 수 있습니다.</p>
+        <form id="shareForm" class="share-form">
+          <input id="shareInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="공유받은 조회 링크 붙여넣기" aria-label="Shared attendance link">
+          <button id="shareButton" type="submit">링크 확인</button>
+        </form>
+        <p id="shareError" class="share-form-error" aria-live="polite"></p>
+      </section>
       <section class="filter-panel" aria-label="Period">
         <div class="period">
           <label class="field"><span class="label" id="fromLabel">시작일</span><input type="date" id="from" required></label>
@@ -111,9 +128,9 @@
     (() => {
       'use strict';
       const words = {
-        ko:{heading:'근무일 조회',description:'기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.',from:'시작일',to:'종료일',lookup:'조회',hint:'영업일 기준이며, 최대 93일까지 조회할 수 있습니다.',result:'직원별 근무 내역',search:'이름 검색',all:'전체',ops:'운영팀',sales:'영업팀',print:'인쇄 / PDF',footnote:'근무일 조회 전용 · 수정 불가',loading:'근무기록을 불러오는 중입니다.',empty:'해당 기간에 기록된 근무일이 없습니다.',error:'근무기록을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.',range:'조회 기간을 확인해 주세요. 한 번에 최대 93일까지 선택할 수 있습니다.',people:'명',days:'일',records:'근무일',none:'검색 결과가 없습니다.',missingKey:'유효한 공유 링크로 접속해 주세요.'},
-        ja:{heading:'勤務日照会',description:'登録された勤務日をご確認ください。実際の勤務と異なる場合は管理者にお知らせください。',from:'開始日',to:'終了日',lookup:'照会',hint:'営業日を基準に表示します。最大93日間まで照会できます。',result:'スタッフ別勤務日',search:'名前を検索',all:'すべて',ops:'運営チーム',sales:'営業チーム',print:'印刷 / PDF',footnote:'勤務日照会専用 · 編集不可',loading:'勤務記録を読み込んでいます。',empty:'この期間の勤務記録はありません。',error:'勤務記録を取得できませんでした。後ほどお試しください。',range:'日付を確認してください。最大93日間まで選択できます。',people:'名',days:'日',records:'勤務日',none:'該当するスタッフがいません。',missingKey:'有効な共有リンクからアクセスしてください。'},
-        en:{heading:'Workday records',description:'Review your recorded workdays. If any date is missing or incorrect, please contact the manager.',from:'From',to:'To',lookup:'View',hint:'Dates follow the business day. Select up to 93 days.',result:'Workdays by staff',search:'Search by name',all:'All',ops:'Operations',sales:'Sales',print:'Print / PDF',footnote:'Read only · No editing',loading:'Loading workday records…',empty:'No workdays recorded for this period.',error:'Could not load workday records. Please try again.',range:'Check the date range. You can select up to 93 days.',people:'staff',days:'days',records:'workdays',none:'No matching staff.',missingKey:'Please open a valid shared link.'}
+        ko:{heading:'근무일 조회',description:'기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.',from:'시작일',to:'종료일',lookup:'조회',hint:'영업일 기준이며, 최대 93일까지 조회할 수 있습니다.',result:'직원별 근무 내역',search:'이름 검색',all:'전체',ops:'운영팀',sales:'영업팀',print:'인쇄 / PDF',footnote:'근무일 조회 전용 · 수정 불가',loading:'근무기록을 불러오는 중입니다.',empty:'해당 기간에 기록된 근무일이 없습니다.',error:'근무기록을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.',range:'조회 기간을 확인해 주세요. 한 번에 최대 93일까지 선택할 수 있습니다.',people:'명',days:'일',records:'근무일',none:'검색 결과가 없습니다.',missingKey:'유효한 공유 링크로 접속해 주세요.',shareHeading:'처음 이용하시나요?',shareHelp:'관리자에게 받은 근무일 조회 링크를 붙여넣으면 이 기기에서 다음부터 바로 열 수 있습니다.',sharePlaceholder:'공유받은 조회 링크 붙여넣기',shareButton:'링크 확인',shareInvalid:'유효한 근무일 조회 링크를 입력해 주세요.'},
+        ja:{heading:'勤務日照会',description:'登録された勤務日をご確認ください。実際の勤務と異なる場合は管理者にお知らせください。',from:'開始日',to:'終了日',lookup:'照会',hint:'営業日を基準に表示します。最大93日間まで照会できます。',result:'スタッフ別勤務日',search:'名前を検索',all:'すべて',ops:'運営チーム',sales:'営業チーム',print:'印刷 / PDF',footnote:'勤務日照会専用 · 編集不可',loading:'勤務記録を読み込んでいます。',empty:'この期間の勤務記録はありません。',error:'勤務記録を取得できませんでした。後ほどお試しください。',range:'日付を確認してください。最大93日間まで選択できます。',people:'名',days:'日',records:'勤務日',none:'該当するスタッフがいません。',missingKey:'有効な共有リンクからアクセスしてください。',shareHeading:'初めてご利用ですか？',shareHelp:'管理者から受け取った勤務日照会リンクを貼り付けてください。次回からこの端末で直接開けます。',sharePlaceholder:'共有リンクを貼り付ける',shareButton:'リンクを確認',shareInvalid:'有効な勤務日照会リンクを入力してください。'},
+        en:{heading:'Workday records',description:'Review your recorded workdays. If any date is missing or incorrect, please contact the manager.',from:'From',to:'To',lookup:'View',hint:'Dates follow the business day. Select up to 93 days.',result:'Workdays by staff',search:'Search by name',all:'All',ops:'Operations',sales:'Sales',print:'Print / PDF',footnote:'Read only · No editing',loading:'Loading workday records…',empty:'No workdays recorded for this period.',error:'Could not load workday records. Please try again.',range:'Check the date range. You can select up to 93 days.',people:'staff',days:'days',records:'workdays',none:'No matching staff.',missingKey:'Please open a valid shared link.',shareHeading:'First time here?',shareHelp:'Paste the attendance link shared by your manager. This device can open the page directly next time.',sharePlaceholder:'Paste your shared attendance link',shareButton:'Use link',shareInvalid:'Please enter a valid shared attendance link.'}
       };
       const el = id => document.getElementById(id);
       const browserLanguage = (navigator.languages || [navigator.language || 'ko']).map(v => v.toLowerCase()).find(v => /^(ko|ja|en)(-|$)/.test(v)) || 'ko';
@@ -124,7 +141,11 @@
       let loading = false;
       let error = '';
       const p = new URLSearchParams(location.search);
-      const accessKey = new URLSearchParams(location.hash.slice(1)).get('key') || '';
+      const keyStorage = 'windmoon-attendance-key-v1';
+      const validKey = key => /^[A-Za-z0-9_-]{16,128}$/.test(key || '');
+      const keyFromLink = new URLSearchParams(location.hash.slice(1)).get('key') || '';
+      const rememberedKey = (() => { try { return localStorage.getItem(keyStorage) || ''; } catch { return ''; } })();
+      let accessKey = keyFromLink || rememberedKey;
       const koreaParts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit'}).formatToParts(new Date());
       const year = koreaParts.find(x=>x.type==='year').value;
       const month = koreaParts.find(x=>x.type==='month').value;
@@ -144,6 +165,10 @@
         });
         el('search').placeholder=t('search');
         el('search').setAttribute('aria-label',t('search'));
+        el('shareHeading').textContent=t('shareHeading');
+        el('shareHelp').textContent=t('shareHelp');
+        el('shareInput').placeholder=t('sharePlaceholder');
+        el('shareButton').textContent=t('shareButton');
         render();
       }
       function make(tag, cls, value){
@@ -163,6 +188,7 @@
         el('summary').textContent=filtered.length+' '+t('people')+' · '+totalDays+' '+t('records');
         const root=el('cards');
         root.replaceChildren();
+        el('shareAccess').hidden = validKey(accessKey) && error!=='missingKey';
         if(loading||error||filtered.length===0){
           root.appendChild(make('div','state'+(error?' error':''),loading?t('loading'):error?(error==='missingKey'?t('missingKey'):t('error')):(employees.length?t('none'):t('empty'))));
           return;
@@ -189,7 +215,7 @@
       }
       async function load(){
         const from=el('from').value, to=el('to').value;
-        if(!/^[A-Za-z0-9_-]{16,128}$/.test(accessKey)){error='missingKey';employees=[];render();return;}
+        if(!validKey(accessKey)){error='missingKey';employees=[];render();return;}
         const diff=(Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z'))/86400000;
         if(!from||!to||!Number.isFinite(diff)||diff<0||diff>=93){error=t('range');employees=[];render();return;}
         loading=true;error='';render();
@@ -202,10 +228,15 @@
           const endpoint=new URL('/api/public-attendance',base);
           endpoint.searchParams.set('from',from);endpoint.searchParams.set('to',to);
           const response=await fetch(endpoint.href,{method:'GET',cache:'no-store',credentials:'omit',headers:{Authorization:'Bearer '+accessKey}});
-          if(response.status===401)throw new Error('missingKey');
+          if(response.status===401){
+            accessKey='';
+            try{localStorage.removeItem(keyStorage)}catch{}
+            throw new Error('missingKey');
+          }
           if(!response.ok)throw new Error('HTTP '+response.status);
           const payload=await response.json();
           if(!Array.isArray(payload.employees))throw new Error('Invalid response');
+          try{localStorage.setItem(keyStorage, accessKey)}catch{}
           employees=payload.employees.filter(e=>typeof e.name==='string'&&['OPS','SALES'].includes(e.department)&&Array.isArray(e.dates))
             .map(e=>({name:e.name,department:e.department,dates:e.dates.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d))}));
         }catch(e){
@@ -225,6 +256,24 @@
         lang=e.target.value;
         try{localStorage.setItem('windmoon-attendance-lang',lang)}catch{}
         renderLanguage();
+      });
+      el('shareForm').addEventListener('submit',event=>{
+        event.preventDefault();
+        const raw=el('shareInput').value.trim();
+        let proposed=raw;
+        if(raw.includes('#')){
+          try{
+            const link=new URL(raw,location.href);
+            proposed=new URLSearchParams(link.hash.slice(1)).get('key') || '';
+          }catch{proposed='';}
+        }
+        if(!validKey(proposed)){
+          el('shareError').textContent=t('shareInvalid');
+          return;
+        }
+        accessKey=proposed;
+        el('shareError').textContent='';
+        load();
       });
       el('lookup').addEventListener('click',load);
       el('previous').addEventListener('click',()=>moveMonth(-1));
