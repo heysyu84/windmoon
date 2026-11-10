@@ -13,6 +13,22 @@ export function personalCardSummary(state){
  const amount=entries.reduce((n,e)=>n+e.amount,0),settled=entries.reduce((n,e)=>n+paidAmount(e),0);
  return {entries,amount,settled,outstanding:amount-settled,open:entries.filter(e=>outstanding(e)>0)};
 }
+export function allocatePersonalReimbursement(state,ids,amount){
+ const selected=new Set(ids);
+ const entries=personalCardSummary(state).open.filter(e=>selected.has(e.id))
+  .sort((a,b)=>a.businessDate.localeCompare(b.businessDate)||a.id.localeCompare(b.id));
+ const total=entries.reduce((sum,e)=>sum+outstanding(e),0);
+ if(!Number.isSafeInteger(amount)||amount<=0||amount>total)throw Error('선택한 대납 건의 미정산 합계 안에서 지급액을 입력해 주세요.');
+ let remaining=amount;
+ const allocations=[];
+ for(const entry of entries){
+  if(!remaining)break;
+  const amount=Math.min(remaining,outstanding(entry));
+  allocations.push({entry,amount});
+  remaining-=amount;
+ }
+ return allocations;
+}
 export const SALE_CHANNELS=[
  {id:'card',group:'점포 매출',name:'카드 매출',method:'card',saleLocation:'store'},
  {id:'cash',group:'점포 매출',name:'현금 매출',method:'cash',saleLocation:'store'},
@@ -277,7 +293,14 @@ export function validateWorkspace(input,previous=null){
    const signature=x=>JSON.stringify({...x,payments:[]});
    if(!next||signature(next)!==signature(e))throw Error('마감된 영업일의 거래는 일마감에서 마감을 다시 연 뒤 수정해 주세요.');
   }
-  for(const e of clone.entries)if(dayClosed(previous,e.businessDate)&&dayClosed({closings},e.businessDate)&&!previous.entries.some(p=>p.id===e.id))throw Error('마감된 영업일에 거래를 추가하려면 먼저 마감을 다시 열어 주세요.');
+  const previousEntries=new Map(previous.entries.map(e=>[e.id,e]));
+  for(const e of clone.entries){
+   if(!dayClosed(previous,e.businessDate)||!dayClosed({closings},e.businessDate))continue;
+   const prior=previousEntries.get(e.id);
+   if(prior?.businessDate===e.businessDate)continue;
+   if(!prior&&e.type==='expense'&&!e.closingDate)continue;
+   throw Error('마감된 영업일에는 새 지출만 추가할 수 있습니다. 다른 거래는 일마감에서 다시 열어 주세요.');
+  }
   for(const [date,c] of Object.entries(previous.closings||{}))if(c.status==='closed'&&!closings[date])throw Error('마감 내역은 삭제할 수 없습니다. 다시 열기를 이용해 주세요.');
  }
  if(clone.openingDate&&!/^\d{4}-\d{2}-\d{2}$/.test(clone.openingDate))throw Error('기초 잔액 기준일을 확인해 주세요.');

@@ -1,8 +1,8 @@
-import {summarize,inRange,saleChannel,saleMethodName,migrateSalesChannels,groupPayrollPeriod,paidAmount,outstanding} from './core.js?v=20261102-sales-channels';
+import {summarize,inRange,saleChannel,saleMethodName,migrateSalesChannels,groupPayrollPeriod,paidAmount,outstanding} from './core.js?v=20261110-ux';
 
 export const REPORT_BASIS='매출·지출·급여는 영업일 기준, 카드 수수료는 정산일 기준입니다. 기타 입금과 자금 이동은 제외합니다.';
 export const reportPeriod=range=>range.start===range.end?range.start:range.start+' ~ '+range.end;
-export const closingLabel=day=>day.status==='closed'?'마감 완료':day.status==='draft'?'임시 저장':day.activity?'미마감':'정산만';
+export const closingLabel=day=>day.status==='closed'?'마감 완료':day.status==='draft'?'임시 저장':day.hasSales?'미마감':day.activity?(day.expenses&&!day.payroll?'지출만':'비용만'):'정산만';
 const sum=(rows,key)=>rows.reduce((n,row)=>n+row[key],0);
 function validDate(value){const date=new Date(value+'T00:00:00Z');return /^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;}
 
@@ -18,8 +18,8 @@ export function buildReport(state,range){
    const day=get(entry.businessDate);day.activity=true;
    if(entry.type==='sale'){
     const channel=saleChannel(entry),key=['card','cash','bank','infoCard','infoBank'].includes(channel)?channel:'other';
-    day[key]+=entry.amount;sales.push({...entry});
-   }else if(entry.type==='refund'){day.refund+=entry.amount;sales.push({...entry});}
+    day.hasSales=true;day[key]+=entry.amount;sales.push({...entry});
+   }else if(entry.type==='refund'){day.hasSales=true;day.refund+=entry.amount;sales.push({...entry});}
    else{day.expenses+=entry.amount;expenses.push({...entry});}
   }
   // Fees can settle outside the sale's business-date range.
@@ -36,7 +36,7 @@ export function buildReport(state,range){
  const daily=[...buckets.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(day=>({...day,storeTotal:day.card+day.cash+day.bank,info:day.infoCard+day.infoBank,revenue:day.card+day.cash+day.bank+day.infoCard+day.infoBank+day.other-day.refund,costs:day.expenses+day.fees,totalCosts:day.expenses+day.fees+day.payroll,profit:day.card+day.cash+day.bank+day.infoCard+day.infoBank+day.other-day.refund-day.expenses-day.fees-day.payroll}));
  const totals=Object.fromEntries(['card','cash','bank','infoCard','infoBank','info','storeTotal','other','refund'].map(key=>[key,sum(daily,key)]));
  const summary=Object.fromEntries(Object.entries(summarize(state,range)).map(([key,value])=>[key,typeof value==='number'&&value===0?0:value]));
- const unclosed=daily.filter(day=>day.activity&&day.status!=='closed').length;
+ const unclosed=daily.filter(day=>(day.hasSales||day.status==='draft')&&day.status!=='closed').length;
  const payrollGroups=groupPayrollPeriod(payroll).map(row=>({...row,paid:paidAmount(row),pending:outstanding(row)}));
  const byDate=(a,b)=>a.businessDate.localeCompare(b.businessDate)||(a.title||'').localeCompare(b.title||'','ko');
  return {range:{...range},period:reportPeriod(range),summary,totals,daily,unclosed,closed:daily.filter(day=>day.status==='closed').length,activityDays:daily.filter(day=>day.activity).length,sales:sales.sort(byDate),expenses:[...expenses,...fees].sort(byDate),payrollGroups,payrollUnavailable:!!state.integration?.error,stale:!!state.integration?.stale,demo:!!state.integration?.demo};
@@ -47,7 +47,7 @@ export function assertReportReady(report){if(report.payrollUnavailable)throw Err
 export function reportSheets(report){
  assertReportReady(report);
  const {summary:s,totals:t}=report;
- const notice=[report.demo?'예시 자료':'실제 장부',report.unclosed?'미마감 '+report.unclosed+'일 포함':report.activityDays?'마감 확인 완료':'영업 기록 없음',report.stale?'이전 급여 연결 자료 사용':''].filter(Boolean).join(' · ');
+ const notice=[report.demo?'예시 자료':'실제 장부',report.unclosed?'미마감 '+report.unclosed+'일 포함':report.activityDays?'등록 내역 집계':'등록 내역 없음',report.stale?'이전 급여 연결 자료 사용':''].filter(Boolean).join(' · ');
  const sheet=(name,headers,rows)=>({name,headerRow:2,rows:[['WINDMOON · 운영보고서 · '+report.period],[notice],headers,...rows]});
  return [
   sheet('기간요약',['항목','금액·내용'],[

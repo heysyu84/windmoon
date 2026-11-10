@@ -236,3 +236,22 @@ td{font-size:14px;color:#748568;padding:16px 19px}
 :host{display:block;font:14px/1.5 Pretendard,sans-serif;color:var(--ink,#253732)}.operations-root>.sidebar,.operations-root .topbar,.operations-root>.mobile-nav{display:none!important}.operations-root>.shell{margin:0!important}.operations-root main{padding:0!important;max-width:none!important}.operations-root .page-heading{margin-top:0}.operations-root .demo-banner{margin-bottom:22px}dialog::backdrop{background:rgba(20,35,30,.4)}
 
 .workspace-operations-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}@media(max-width:640px){.workspace-operations-actions{gap:7px}.operations-root .page-heading{align-items:flex-start;gap:15px;flex-wrap:wrap}.workspace-operations-actions #refresh-server{font-size:12px}}
+.report-quick-links{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0}
+.report-breakdown,.report-expense-list{margin:14px 0}
+.report-breakdown>summary{padding:14px 16px;cursor:pointer;font-weight:700}
+.report-expense-list .report-line small{display:block;color:#4f665b}
+#reimbursement-form .report-lines{max-height:36vh;overflow:auto;margin:12px 0}
+#reimbursement-form input[type=checkbox]{width:17px;height:17px;vertical-align:middle}
+@media(max-width:640px){
+ .report-daily-table{display:block;min-width:0;width:100%}
+ .report-daily-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .report-daily-table tbody,.report-daily-table tfoot{display:block}
+ .report-daily-table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:8px 12px;border-top:1px solid var(--line)}
+ .report-daily-table td{padding:5px;border:0;text-align:left;white-space:normal}
+ .report-daily-table td:nth-child(1){grid-column:1/-1}
+ .report-daily-table td:nth-child(n+2):nth-child(-n+5)::before{display:block;color:#4f665b;font-size:11px}
+ .report-daily-table td:nth-child(2)::before{content:'매출'}
+ .report-daily-table td:nth-child(3)::before{content:'일반 지출'}
+ .report-daily-table td:nth-child(4)::before{content:'직원 급여'}
+ .report-daily-table td:nth-child(5)::before{content:'운영손익'}
+}
