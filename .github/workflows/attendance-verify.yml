@@ -26,8 +26,9 @@ jobs:
           assert.ok(inline,'Inline client code missing');
           new vm.Script(inline,{filename:'attendance-client.js'});
           assert.match(html,/navigator\.languages/);
-          assert.match(html,/Authorization:'Bearer '/);
-          assert.match(html,/location\.hash/);
+          assert.doesNotMatch(html,/Authorization:'Bearer '|shareForm|shareAccess/);
+          assert.match(html,/credentials:'omit'/);
+          assert.doesNotMatch(html,/location\.hash/);
           assert.match(html,/<meta name="robots" content="noindex/);
           assert.doesNotMatch(html,/\b(password|residentId|accountNumber|salary|payroll)\b/i);
           const appList = JSON.parse(fs.readFileSync('modules.json','utf8'));
@@ -41,5 +42,6 @@ jobs:
           assert.match(homeJs,/calendar:/);
           assert.doesNotMatch(homeJs,/#key=|Bearer /);
           assert.doesNotMatch(JSON.stringify(appList),/#key=|Bearer /);
+          assert.match(appList[1].description,/로그인 없이/);
           console.log('Homepage placement and attendance page syntax/privacy checks passed');
           NODE

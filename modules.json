@@ -12,7 +12,7 @@
     "id": "attendance",
     "name": "근무일 조회",
     "english": "STAFF ATTENDANCE",
-    "description": "직원별 근무 날짜와 근무일수를 확인하세요. 처음에는 공유 링크가 필요합니다.",
+    "description": "로그인 없이 직원별 근무 날짜와 근무일수를 바로 확인하세요.",
     "group": "매장 운영",
     "icon": "calendar",
     "href": "attendance/"
