@@ -1,0 +1,34 @@
+name: Verify standalone attendance page
+on:
+  pull_request:
+    paths: ['attendance/**', '.github/workflows/attendance-verify.yml']
+  push:
+    branches: [main]
+    paths: ['attendance/**', '.github/workflows/attendance-verify.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate standalone page and privacy protections
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import vm from 'node:vm';
+          import assert from 'node:assert/strict';
+          const html = fs.readFileSync('attendance/index.html','utf8');
+          const inline = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x => x[1]).find(Boolean);
+          assert.ok(inline,'Inline client code missing');
+          new vm.Script(inline,{filename:'attendance-client.js'});
+          assert.match(html,/navigator\.languages/);
+          assert.match(html,/Authorization:'Bearer '/);
+          assert.match(html,/location\.hash/);
+          assert.match(html,/<meta name="robots" content="noindex/);
+          assert.doesNotMatch(html,/\b(password|residentId|accountNumber|salary|payroll)\b/i);
+          console.log('Standalone attendance page syntax and public-field checks passed');
+          NODE
