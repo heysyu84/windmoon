@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#142b25">
+  <meta name="description" content="WIND MOON 직원 근무일 조회">
+  <title>WIND MOON · 근무일 조회</title>
+  <link rel="icon" href="../favicon.svg">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <script src="../staff/server-config.js"></script>
+  <style>
+    :root{color-scheme:light;font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR",system-ui,sans-serif;background:#f4f5f1;color:#1f2925;font-synthesis:none}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    a{color:inherit}
+    .shell{max-width:930px;margin:0 auto;padding:0 24px 80px}
+    .mast{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:28px 0 32px}
+    .identity{display:flex;align-items:center;gap:11px;text-decoration:none;font-weight:800;font-size:15px;letter-spacing:.11em}
+    .identity img{width:34px;height:34px;object-fit:contain}
+    .tag{border:1px solid #d5dfd7;color:#557063;border-radius:99px;padding:5px 10px;font-size:11px;font-weight:800;letter-spacing:.04em}
+    .header-right{display:flex;align-items:center;gap:12px}
+    .locale-select{border:1px solid #cbd5cc;border-radius:9px;background:#fff;color:#1d3429;padding:9px 10px;font-size:13px}
+    .intro{padding:20px 0 26px;border-bottom:1px solid #dce2db}
+    .eyebrow{font-size:12px;letter-spacing:.13em;font-weight:800;color:#668073}
+    h1{font-size:clamp(29px,5vw,42px);letter-spacing:-.055em;line-height:1.2;margin:10px 0 10px;color:#172e25}
+    .lead{margin:0;color:#6b7870;font-size:14px;line-height:1.8}
+    .filter-panel{margin-top:26px;border:1px solid #dce3db;background:#fff;box-shadow:0 8px 32px #122d1b08;border-radius:18px;padding:22px}
+    .label{font-weight:700;font-size:12px;color:#61766a}
+    .period{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+    .field{display:flex;flex-direction:column;gap:8px;flex:1 1 152px}
+    .field input{width:100%;background:#f8faf8;border:1px solid #dce5dd;border-radius:10px;padding:12px 11px;color:#203a2b;font-size:14px;min-height:44px}
+    .period-actions{display:flex;gap:5px;align-self:end}
+    .mini{height:44px;min-width:42px;border-radius:10px;border:1px solid #d7e1d8;background:#f7faf7;color:#183b2a;font-weight:700}
+    .go{min-height:44px;border:0;border-radius:10px;padding:0 20px;background:#193a2d;color:white;font-weight:700}
+    .hint{font-size:12px;color:#7e8981;margin:12px 0 0}
+    .results-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:32px}
+    h2{margin:0;font-size:20px;letter-spacing:-.04em}
+    .summary{font-size:13px;color:#64776b}
+    .summary strong{font-size:15px;color:#1d3a2d}
+    .tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:11px;margin:18px 0 18px}
+    .search{padding:11px 13px;min-height:42px;flex:1 1 190px;max-width:350px;border:1px solid #d8e1d9;border-radius:11px;background:#fff;outline-color:#55866b}
+    .team-tabs{display:flex;gap:3px;padding:4px;background:#e9efe9;border-radius:11px}
+    .team-tabs button{border:0;border-radius:8px;background:transparent;color:#617369;padding:8px 12px;font-size:12px;font-weight:700}
+    .team-tabs button[aria-pressed="true"]{background:#fff;color:#1e3e2d;box-shadow:0 2px 8px #0000000b}
+    .print{border:1px solid #d7e1d8;background:white;border-radius:10px;padding:10px 13px;color:#365644;font-size:12px;font-weight:750}
+    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .card{border:1px solid #dee5de;background:white;border-radius:16px;padding:19px 19px 18px;min-width:0}
+    .card-top{display:flex;justify-content:space-between;align-items:start;gap:12px}
+    .person{font-size:18px;font-weight:800;letter-spacing:-.04em;overflow-wrap:anywhere}
+    .team{font-size:11px;color:#829086;margin-top:4px}
+    .days-total{border-radius:10px;padding:8px 12px;background:#eff5ef;text-align:center;white-space:nowrap}
+    .days-total b{font-size:20px;color:#23513a}
+    .days-total span{font-size:12px;color:#647b6b}
+    .dates{display:flex;flex-wrap:wrap;gap:7px;margin-top:17px}
+    .date{font-size:12px;padding:7px 9px;background:#f5f8f5;border:1px solid #e2e9e2;color:#3f604b;border-radius:8px;white-space:nowrap}
+    .date.weekend{background:#f9f3f0;border-color:#f1e3db;color:#986c54}
+    .state{grid-column:1/-1;text-align:center;border:1px dashed #d6e2d9;border-radius:15px;background:#fff;padding:50px 18px;color:#6f8275;font-size:14px;line-height:1.7}
+    .state.error{color:#a24b49;border-color:#f0c9c8;background:#fffaf9}
+    footer{margin-top:35px;border-top:1px solid #dae2db;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#859188;font-size:12px}
+    @media(max-width:660px){.shell{padding:0 15px 60px}.mast{padding:20px 0 18px}.header-right{gap:6px}.tag{display:none}.filter-panel{margin-top:20px;padding:15px}.period{gap:8px}.field{flex-basis:130px}.field input{font-size:13px}.period-actions{flex:1}.period-actions .mini{flex:1}.go{flex:1}.results-head{align-items:baseline}.cards{grid-template-columns:1fr;gap:10px}.card{padding:16px}.tools{gap:8px}.search{max-width:none;flex-basis:100%}h2{font-size:19px}}
+    @media print{@page{size:A4;margin:13mm}body{background:#fff}.shell{max-width:none;padding:0}.mast{padding:0 0 16px}.intro{padding:12px 0}.filter-panel,.tools,footer,.header-right{display:none!important}.results-head{margin:18px 0}.cards{gap:8px}.card{break-inside:avoid;padding:13px}.date{padding:4px 6px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="mast">
+      <div class="identity"><img src="../favicon.svg" alt=""><span>WIND MOON</span></div>
+      <div class="header-right"><span class="tag" id="readonly">READ ONLY</span><select class="locale-select" id="language" aria-label="Language"><option value="ko">한국어</option><option value="ja">日本語</option><option value="en">English</option></select></div>
+    </header>
+    <main>
+      <section class="intro">
+        <div class="eyebrow">STAFF ATTENDANCE</div>
+        <h1 id="heading">근무일 조회</h1>
+        <p class="lead" id="description">기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.</p>
+      </section>
+      <section class="filter-panel" aria-label="Period">
+        <div class="period">
+          <label class="field"><span class="label" id="fromLabel">시작일</span><input type="date" id="from" required></label>
+          <label class="field"><span class="label" id="toLabel">종료일</span><input type="date" id="to" required></label>
+          <div class="period-actions"><button class="mini" id="previous" aria-label="Previous month">‹</button><button class="mini" id="next" aria-label="Next month">›</button></div>
+          <button class="go" id="lookup">조회</button>
+        </div>
+        <p class="hint" id="periodHint">영업일 기준이며, 최대 93일까지 조회할 수 있습니다.</p>
+      </section>
+      <section aria-label="Attendance">
+        <div class="results-head">
+          <h2 id="resultsTitle">직원별 근무 내역</h2>
+          <div class="summary" id="summary" aria-live="polite"></div>
+        </div>
+        <div class="tools">
+          <input class="search" id="search" type="search" placeholder="이름 검색" aria-label="Search employees">
+          <div class="team-tabs" role="group" aria-label="Team">
+            <button type="button" data-team="ALL" aria-pressed="true" id="allTeam">전체</button>
+            <button type="button" data-team="OPS" aria-pressed="false" id="opsTeam">운영팀</button>
+            <button type="button" data-team="SALES" aria-pressed="false" id="salesTeam">영업팀</button>
+          </div>
+          <button class="print" id="print">인쇄 / PDF</button>
+        </div>
+        <div class="cards" id="cards" aria-live="polite"><div class="state">근무기록을 불러오는 중입니다.</div></div>
+      </section>
+    </main>
+    <footer><span>WIND MOON · STAFF ATTENDANCE</span><span id="footnote">근무일 조회 전용 · 수정 불가</span></footer>
+  </div>
+  <script>
+    (() => {
+      'use strict';
+      const words = {
+        ko:{heading:'근무일 조회',description:'기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.',from:'시작일',to:'종료일',lookup:'조회',hint:'영업일 기준이며, 최대 93일까지 조회할 수 있습니다.',result:'직원별 근무 내역',search:'이름 검색',all:'전체',ops:'운영팀',sales:'영업팀',print:'인쇄 / PDF',footnote:'근무일 조회 전용 · 수정 불가',loading:'근무기록을 불러오는 중입니다.',empty:'해당 기간에 기록된 근무일이 없습니다.',error:'근무기록을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.',range:'조회 기간을 확인해 주세요. 한 번에 최대 93일까지 선택할 수 있습니다.',people:'명',days:'일',records:'근무일',none:'검색 결과가 없습니다.'},
+        ja:{heading:'勤務日照会',description:'登録された勤務日をご確認ください。実際の勤務と異なる場合は管理者にお知らせください。',from:'開始日',to:'終了日',lookup:'照会',hint:'営業日を基準に表示します。最大93日間まで照会できます。',result:'スタッフ別勤務日',search:'名前を検索',all:'すべて',ops:'運営チーム',sales:'営業チーム',print:'印刷 / PDF',footnote:'勤務日照会専用 · 編集不可',loading:'勤務記録を読み込んでいます。',empty:'この期間の勤務記録はありません。',error:'勤務記録を取得できませんでした。後ほどお試しください。',range:'日付を確認してください。最大93日間まで選択できます。',people:'名',days:'日',records:'勤務日',none:'該当するスタッフがいません。'},
+        en:{heading:'Workday records',description:'Review your recorded workdays. If any date is missing or incorrect, please contact the manager.',from:'From',to:'To',lookup:'View',hint:'Dates follow the business day. Select up to 93 days.',result:'Workdays by staff',search:'Search by name',all:'All',ops:'Operations',sales:'Sales',print:'Print / PDF',footnote:'Read only · No editing',loading:'Loading workday records…',empty:'No workdays recorded for this period.',error:'Could not load workday records. Please try again.',range:'Check the date range. You can select up to 93 days.',people:'staff',days:'days',records:'workdays',none:'No matching staff.'}
+      };
+      const el = id => document.getElementById(id);
+      const browserLanguage = (navigator.languages || [navigator.language || 'ko']).map(v => v.toLowerCase()).find(v => /^(ko|ja|en)(-|$)/.test(v)) || 'ko';
+      let lang = (function(){try{return localStorage.getItem('windmoon-attendance-lang')}catch{return null}})() || browserLanguage.slice(0,2);
+      if (!words[lang]) lang = 'ko';
+      let employees = [];
+      let team = 'ALL';
+      let loading = false;
+      let error = '';
+      const p = new URLSearchParams(location.search);
+      const koreaParts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+      const year = koreaParts.find(x=>x.type==='year').value;
+      const month = koreaParts.find(x=>x.type==='month').value;
+      const defaultMonth = year+'-'+month;
+      const monthBounds = value => ({from:value+'-01',to:value+'-'+String(new Date(Date.UTC(Number(value.slice(0,4)),Number(value.slice(5,7)),0)).getUTCDate()).padStart(2,'0')});
+      const bounds = monthBounds(defaultMonth);
+      el('from').value = /^\d{4}-\d{2}-\d{2}$/.test(p.get('from') || '') ? p.get('from') : bounds.from;
+      el('to').value = /^\d{4}-\d{2}-\d{2}$/.test(p.get('to') || '') ? p.get('to') : bounds.to;
+      el('language').value = lang;
+      const t = key => words[lang][key];
+      function renderLanguage(){
+        document.documentElement.lang=lang;
+        document.title='WIND MOON · '+t('heading');
+        ['heading','description','resultsTitle','fromLabel','toLabel','lookup','periodHint','allTeam','opsTeam','salesTeam','print','footnote'].forEach((id,i)=>{
+          const keys=['heading','description','result','from','to','lookup','hint','all','ops','sales','print','footnote'];
+          el(id).textContent=t(keys[i]);
+        });
+        el('search').placeholder=t('search');
+        el('search').setAttribute('aria-label',t('search'));
+        render();
+      }
+      function make(tag, cls, value){
+        const node=document.createElement(tag);
+        if(cls)node.className=cls;
+        if(value!=null)node.textContent=value;
+        return node;
+      }
+      function formatDay(value){
+        const date = new Date(value+'T12:00:00Z');
+        const weekday=new Intl.DateTimeFormat(lang,{weekday:'short',timeZone:'UTC'}).format(date);
+        return value.slice(5).replace('-','.')+' '+weekday;
+      }
+      function render(){
+        const filtered = employees.filter(e=>(team==='ALL'||e.department===team)&&e.name.toLocaleLowerCase().includes(el('search').value.trim().toLocaleLowerCase()));
+        const totalDays=filtered.reduce((n,e)=>n+e.dates.length,0);
+        el('summary').textContent=filtered.length+' '+t('people')+' · '+totalDays+' '+t('records');
+        const root=el('cards');
+        root.replaceChildren();
+        if(loading||error||filtered.length===0){
+          root.appendChild(make('div','state'+(error?' error':''),loading?t('loading'):error?t('error'):(employees.length?t('none'):t('empty'))));
+          return;
+        }
+        filtered.forEach(person=>{
+          const card=make('article','card');
+          const top=make('div','card-top');
+          const personWrap=make('div');
+          personWrap.appendChild(make('div','person',person.name));
+          personWrap.appendChild(make('div','team',t(person.department==='OPS'?'ops':'sales')));
+          const count=make('div','days-total');
+          count.appendChild(make('b','',String(person.dates.length)));
+          count.appendChild(make('span','', ' '+t('days')));
+          top.append(personWrap,count);
+          card.appendChild(top);
+          const chips=make('div','dates');
+          person.dates.forEach(date=>{
+            const dow = new Date(date+'T12:00:00Z').getUTCDay();
+            chips.appendChild(make('span','date'+((dow===0||dow===6)?' weekend':''),formatDay(date)));
+          });
+          card.appendChild(chips);
+          root.appendChild(card);
+        });
+      }
+      async function load(){
+        const from=el('from').value, to=el('to').value;
+        const diff=(Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z'))/86400000;
+        if(!from||!to||!Number.isFinite(diff)||diff<0||diff>=93){error=t('range');employees=[];render();return;}
+        loading=true;error='';render();
+        const url=new URL(location.href);
+        url.searchParams.set('from',from);url.searchParams.set('to',to);
+        history.replaceState(null,'',url.pathname+url.search);
+        try{
+          const base=window.WINDMOON_CONFIG?.apiBase;
+          if(!base || !/^https:\/\//.test(base)) throw new Error('Missing backend URL');
+          const endpoint=new URL('/api/public-attendance',base);
+          endpoint.searchParams.set('from',from);endpoint.searchParams.set('to',to);
+          const response=await fetch(endpoint.href,{method:'GET',cache:'no-store',credentials:'omit'});
+          if(!response.ok)throw new Error('HTTP '+response.status);
+          const payload=await response.json();
+          if(!Array.isArray(payload.employees))throw new Error('Invalid response');
+          employees=payload.employees.filter(e=>typeof e.name==='string'&&['OPS','SALES'].includes(e.department)&&Array.isArray(e.dates))
+            .map(e=>({name:e.name,department:e.department,dates:e.dates.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d))}));
+        }catch(e){
+          error=e?.message||'Error';employees=[];
+        }finally{loading=false;render();}
+      }
+      function moveMonth(delta){
+        const from=el('from').value;
+        const y=Number(from.slice(0,4)),m=Number(from.slice(5,7));
+        if(!Number.isFinite(y)||!Number.isFinite(m))return;
+        const next=new Date(Date.UTC(y,m-1+delta,1)).toISOString().slice(0,7);
+        const bounds=monthBounds(next);
+        el('from').value=bounds.from;el('to').value=bounds.to;
+        load();
+      }
+      el('language').addEventListener('change',e=>{
+        lang=e.target.value;
+        try{localStorage.setItem('windmoon-attendance-lang',lang)}catch{}
+        renderLanguage();
+      });
+      el('lookup').addEventListener('click',load);
+      el('previous').addEventListener('click',()=>moveMonth(-1));
+      el('next').addEventListener('click',()=>moveMonth(1));
+      el('search').addEventListener('input',render);
+      document.querySelectorAll('[data-team]').forEach(button=>{
+        button.addEventListener('click',()=>{
+          team=button.dataset.team;
+          document.querySelectorAll('[data-team]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.team===team)));
+          render();
+        });
+      });
+      el('print').addEventListener('click',()=>window.print());
+      renderLanguage();
+      load();
+    })();
+  </script>
+</body>
+</html>
