@@ -42,12 +42,12 @@ export function buildReport(state,range){
  return {range:{...range},period:reportPeriod(range),summary,totals,daily,unclosed,closed:daily.filter(day=>day.status==='closed').length,activityDays:daily.filter(day=>day.activity).length,sales:sales.sort(byDate),expenses:[...expenses,...fees].sort(byDate),payrollGroups,payrollUnavailable:!!state.integration?.error,stale:!!state.integration?.stale,demo:!!state.integration?.demo};
 }
 
-export function assertReportReady(report){if(report.payrollUnavailable)throw Error('급여 자료를 연결한 뒤 내보내 주세요. 상단의 서버 새로고침을 눌러 주세요.');}
+export function assertReportReady(report){if(report.payrollUnavailable)throw Error('급여 자료를 불러온 뒤 내보내 주세요. 상단의 서버 새로고침을 눌러 주세요.');}
 
 export function reportSheets(report){
  assertReportReady(report);
  const {summary:s,totals:t}=report;
- const notice=[report.demo?'예시 자료':'실제 장부',report.unclosed?'미마감 '+report.unclosed+'일 포함':report.activityDays?'등록 내역 집계':'등록 내역 없음',report.stale?'이전 급여 연결 자료 사용':''].filter(Boolean).join(' · ');
+ const notice=[report.demo?'예시 자료':'실제 장부',report.unclosed?'미마감 '+report.unclosed+'일 포함':report.activityDays?'등록 내역 집계':'등록 내역 없음',report.stale?'마지막으로 조회한 급여 자료 사용':''].filter(Boolean).join(' · ');
  const sheet=(name,headers,rows)=>({name,headerRow:2,rows:[['WINDMOON · 운영보고서 · '+report.period],[notice],headers,...rows]});
  return [
   sheet('기간요약',['항목','금액·내용'],[
