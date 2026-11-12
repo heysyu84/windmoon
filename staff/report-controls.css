@@ -1,0 +1,33 @@
+/* Shared report controls in personnel and the operations shadow root. */
+.filter-panel.report-period-controls,.period-bar.report-period-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px 13px;min-width:0;padding:15px 18px;margin-bottom:24px;border:1px solid #e5e9e6;border-radius:9px;background:#fff}
+.report-period-controls .period-tabs,.report-period-controls .segments{display:flex;align-items:center;flex:none;gap:3px;padding:3px;border-radius:6px;background:#f2f5ee}
+.report-period-controls .period-tabs button,.report-period-controls .segments button{padding:6px 12px;border:0;border-radius:4px;background:transparent;color:#71816b;font-size:13px;line-height:20px;white-space:nowrap}
+.report-period-controls .period-tabs button.active,.report-period-controls .segments button.active{background:#fff;color:#385430;font-weight:600;box-shadow:0 1px 4px #2b44200a}
+.report-period-controls>.period-inputs,.report-period-controls>.period-inputs.custom{display:flex;align-items:center;justify-content:flex-start;flex:0 1 auto;flex-wrap:nowrap;gap:7px;order:0;width:auto;max-width:100%;min-width:0;margin:0}
+.report-period-controls .entry-date-control,.report-period-controls .operations-date-picker{flex:0 1 auto;min-width:0}
+.report-period-controls .entry-date-trigger,.report-period-controls .operations-date-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:0;max-width:100%;height:36px;padding:7px 9px;border:1px solid #dfe5e0;border-radius:7px;background:#fff;color:#557142;font-size:14px;font-weight:500;line-height:20px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.report-period-controls .entry-date-trigger>svg,.report-period-controls .operations-date-trigger>svg{width:16px;height:16px;flex:none;color:#809386}
+.report-period-controls .operations-date-trigger .picker-caret{display:flex;align-items:center;margin:0;color:#809386}
+.report-period-controls .entry-date-trigger:hover,.report-period-controls .operations-date-trigger:hover{background:#f0f4ef}
+.report-period-controls .operations-period-divider,.report-period-controls>.period-inputs>span{flex:none;font-size:12px;color:#8d9b83}
+.report-period-controls .date-step{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:33px;border:1px solid #dfe5db;border-radius:6px;background:#fff;color:#718777}
+.report-period-controls .period-note{margin-left:auto;font-size:12px;color:#71816b;white-space:nowrap}
+.operations-calendar-popover{width:304px;border-radius:10px}
+.operations-calendar-heading{font-size:13px}
+.operations-calendar-day{height:36px;font-size:13px}
+.operations-calendar-popover .operations-calendar-direct input{min-width:0}
+@media(max-width:640px){
+ .filter-panel.report-period-controls,.period-bar.report-period-controls{gap:10px;padding:12px;margin-bottom:17px}
+ .report-period-controls .period-tabs button,.report-period-controls .segments button{font-size:12px;padding:6px 10px}
+ .report-period-controls>.period-inputs,.report-period-controls>.period-inputs.custom{flex:1 0 100%;width:100%;gap:5px}
+ .report-period-controls .entry-date-trigger,.report-period-controls .operations-date-trigger{gap:5px;padding:7px 8px;font-size:13px}
+ .report-period-controls .entry-date-trigger>svg,.report-period-controls .operations-date-trigger>svg{width:14px;height:14px}
+ .report-period-controls .period-note{display:none}
+ .operations-calendar-popover,.operations-date-picker[data-picker-field="end"] .operations-calendar-popover{position:fixed;left:50%;right:auto;top:50%;transform:translate(-50%,-50%);width:304px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 90px);overflow-y:auto}
+ /* Shadow DOM inputs need the same iOS zoom protection as personnel inputs. */
+ input:not([type=checkbox]):not([type=radio]),select,textarea,.operations-calendar-direct input{font-size:16px!important}
+}
+@media(max-width:360px){
+ .report-period-controls .period-inputs.custom .entry-date-trigger>svg:last-child,.report-period-controls .period-inputs.custom .picker-caret{display:none}
+ .report-period-controls .period-inputs.custom .entry-date-trigger,.report-period-controls .period-inputs.custom .operations-date-trigger{font-size:12px;padding-inline:7px}
+}

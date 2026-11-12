@@ -24,13 +24,15 @@ export function markedDates(state) {
  return dates;
 }
 
-const labels = {day:'조회 날짜',month:'조회 월',start:'조회 시작일',end:'조회 종료일'};
+const calendarIcon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4m8-4v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg>';
+const caretIcon='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const labels = {day:'조회 일자',month:'조회 월',start:'조회 시작일',end:'조회 종료일'};
 export function datePickerHtml({field,value,opened=false,viewMonth,counts=new Map(),today}) {
  const isMonth=field==='month';
  const label=labels[field]||'날짜';
  const display=String(value||'').replaceAll('-','.');
  const title=label+' 달력 '+(opened?'닫기':'열기');
- const trigger='<div class="operations-date-picker" data-picker-field="'+field+'"><button type="button" class="operations-date-trigger" data-calendar-toggle="'+field+'" aria-haspopup="dialog" aria-expanded="'+opened+'" aria-label="'+title+'"><span aria-hidden="true">▦</span><time datetime="'+value+'">'+display+'</time><span class="picker-caret" aria-hidden="true">⌄</span></button>';
+ const trigger='<div class="operations-date-picker" data-picker-field="'+field+'"><button type="button" class="operations-date-trigger" data-calendar-toggle="'+field+'" aria-haspopup="dialog" aria-expanded="'+opened+'" aria-label="'+title+'">'+calendarIcon+'<time datetime="'+value+'">'+display+'</time><span class="picker-caret" aria-hidden="true">'+caretIcon+'</span></button>';
  if(!opened) return trigger+'</div>';
  const validMonth=/^\d{4}-\d{2}$/.test(viewMonth)?viewMonth:String(value).slice(0,7);
  const [year,month]=validMonth.split('-').map(Number);
