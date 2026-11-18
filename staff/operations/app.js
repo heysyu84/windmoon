@@ -2,7 +2,7 @@ import {EXPENSE_PAYMENT_METHODS,expensePaymentMethod,isPaidOnBehalf,matchesExpen
 import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPersonalCardDashboard,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261118-expense-payment';
 import {buildReport,assertReportReady,reportSheets,closingLabel} from './report-data.js?v=20261118-expense-payment';
 import {renderReport,reportBreakdown,reportExpenses} from './report-view.js?v=20261118-expense-payment';
-import {markedDates,datePickerHtml} from './calendar.js?v=20261118-expense-payment';
+import {markedDates,datePickerHtml} from './calendar.js?v=20261119-expense-calendar';
 import {fetchPayrollSnapshot} from './payroll-cache.js?v=20261104-d1';
 import {startWorkspaceSync} from '../workspace-sync.mjs';
 // Memory-only cache: survives navigating between workspace panels, never

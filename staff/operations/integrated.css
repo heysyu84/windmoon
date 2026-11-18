@@ -210,6 +210,8 @@ td{font-size:14px;color:#748568;padding:16px 19px}
 .operations-calendar-legend i.closed{background:#559d72}
 .operations-calendar-legend i.draft{background:#d9a23f}
 .operations-calendar-legend i.pending{background:#d55353}
+.operations-calendar-day.status-expense-only .operations-calendar-dot,
+.operations-calendar-legend i.expense-only{background:#2563b8}
 .operations-calendar-apply{width:100%;margin-bottom:10px;border:1px solid #b9d0b8;border-radius:6px;padding:8px;background:#eff6ee;color:#386047;font-size:12px;font-weight:650}
 .operations-calendar-direct{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #edf0eb;padding:10px 3px 0;font-size:11px;color:#819383}
 .operations-calendar-direct input{width:146px;min-width:0;font-size:12px!important}
