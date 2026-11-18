@@ -2,14 +2,25 @@ export const STORAGE_KEY = 'windmoon-operations-demo-v1';
 // This module is shared with the Worker. Resolve browser paths only in a browser.
 export const STAFF_URL='#staff';
 export const ACCOUNTS = [{id:'cash',name:'현금 시재',short:'현금',icon:'wallet'},{id:'bank',name:'운영계좌',short:'계좌',icon:'bank'}];
-export const DEFAULT_PAYMENT_METHODS = [{id:'card',name:'카드'},{id:'cash',name:'현금'},{id:'bank',name:'계좌이체'},{id:'repCard',name:'대표카드'},{id:'personalCard',name:'개인카드(대납)'}];
+export const EXPENSE_PAYMENT_METHODS = [{id:'card',name:'카드'},{id:'cash',name:'현금'},{id:'bank',name:'계좌이체'},{id:'other',name:'기타'}];
+export const DEFAULT_PAYMENT_METHODS = EXPENSE_PAYMENT_METHODS;
 export const accountDefinitions=state=>Array.isArray(state?.accounts)?state.accounts:ACCOUNTS;
 export const selectableAccounts=state=>accountDefinitions(state).filter(a=>a.active!==false);
 export const paymentMethodDefinitions=state=>Array.isArray(state?.paymentMethods)?state.paymentMethods:DEFAULT_PAYMENT_METHODS;
 export const selectablePaymentMethods=state=>paymentMethodDefinitions(state).filter(m=>m.active!==false);
-export const paymentMethodLabel=(entry,state)=>entry?.type==='sale'?({card:'점포 카드',cash:'점포 현금',bank:'점포 계좌이체'}[entry.method]||'기타'):(paymentMethodDefinitions(state).find(m=>m.id===entry?.method)?.name||DEFAULT_PAYMENT_METHODS.find(m=>m.id===entry?.method)?.name||entry?.method||'—');
+export const expensePaymentMethod=entry=>['card','repCard','personalCard'].includes(entry?.method)?'card':['cash','bank'].includes(entry?.method)?entry.method:'other';
+// Explicit flags override the legacy personal-card classification, including false.
+export const isPaidOnBehalf=entry=>entry?.type==='expense'&&(typeof entry.paidOnBehalf==='boolean'?entry.paidOnBehalf:entry.method==='personalCard');
+export function matchesExpenseFilters(entry,filters={}){
+ const query=(filters.search||'').trim().toLocaleLowerCase('ko');
+ return (!query||[entry.title,entry.partner,entry.category,entry.note].join(' ').toLocaleLowerCase('ko').includes(query))
+  &&(!filters.status||paymentStatus(entry)===filters.status)
+  &&(!filters.method||expensePaymentMethod(entry)===filters.method)
+  &&(!filters.reimbursement||isPaidOnBehalf(entry)===(filters.reimbursement==='yes'));
+}
+export const paymentMethodLabel=(entry,state)=>entry?.type==='sale'?({card:'점포 카드',cash:'점포 현금',bank:'점포 계좌이체'}[entry.method]||'기타'):entry?.type==='expense'?EXPENSE_PAYMENT_METHODS.find(m=>m.id===expensePaymentMethod(entry)).name:(paymentMethodDefinitions(state).find(m=>m.id===entry?.method)?.name||DEFAULT_PAYMENT_METHODS.find(m=>m.id===entry?.method)?.name||entry?.method||'—');
 export function personalCardSummary(state){
- const entries=(state.entries||[]).filter(e=>e.type==='expense'&&e.method==='personalCard');
+ const entries=(state.entries||[]).filter(isPaidOnBehalf);
  const amount=entries.reduce((n,e)=>n+e.amount,0),settled=entries.reduce((n,e)=>n+paidAmount(e),0);
  return {entries,amount,settled,outstanding:amount-settled,open:entries.filter(e=>outstanding(e)>0)};
 }
@@ -129,6 +140,7 @@ export function addPayment(entry,payment,accounts=ACCOUNTS){
  return {...entry,payments:[...(entry.payments||[]),{...payment,amount,fee}]};
 }
 export function validateEntry(e,accounts=ACCOUNTS){
+ if(e.paidOnBehalf!==undefined&&(typeof e.paidOnBehalf!=='boolean'||(e.paidOnBehalf&&e.type!=='expense')))throw Error('대납 여부를 확인해 주세요.');
  if(!TYPE_NAMES[e.type])throw new Error('거래 종류를 선택해 주세요.');
  if(!e.title?.trim())throw new Error('거래 내용을 입력해 주세요.');
  if(!Number.isSafeInteger(e.amount)||e.amount<=0||e.amount>99999999999)throw new Error('금액은 1원 이상 정수로 입력해 주세요.');
@@ -267,14 +279,14 @@ export function validateWorkspace(input,previous=null){
  const clone=migrateSalesChannels(JSON.parse(JSON.stringify(input)));
  const accounts=accountDefinitions(clone),methods=paymentMethodDefinitions(clone);
  if(!Array.isArray(accounts)||accounts.length<2||accounts.length>40||accounts.some(a=>!a||typeof a.id!=='string'||!/^(cash|bank|ac-[\w-]{6,80})$/.test(a.id)||typeof a.name!=='string'||!a.name.trim()||a.name.length>50||!['boolean','undefined'].includes(typeof a.active))||new Set(accounts.map(a=>a.id)).size!==accounts.length||!accounts.some(a=>a.id==='cash'&&a.active!==false)||!accounts.some(a=>a.id==='bank'&&a.active!==false))throw Error('입출금 위치 설정을 확인해 주세요.');
- if(!Array.isArray(methods)||methods.length>40||methods.some(m=>!m||typeof m.id!=='string'||!/^(card|cash|bank|repCard|personalCard|pm-[\w-]{6,80})$/.test(m.id)||typeof m.name!=='string'||!m.name.trim()||m.name.length>50||!['boolean','undefined'].includes(typeof m.active))||new Set(methods.map(m=>m.id)).size!==methods.length)throw Error('결제수단 설정을 확인해 주세요.');
+ if(!Array.isArray(methods)||methods.length>40||methods.some(m=>!m||typeof m.id!=='string'||!/^(card|cash|bank|other|repCard|personalCard|pm-[\w-]{6,80})$/.test(m.id)||typeof m.name!=='string'||!m.name.trim()||m.name.length>50||!['boolean','undefined'].includes(typeof m.active))||new Set(methods.map(m=>m.id)).size!==methods.length)throw Error('결제수단 설정을 확인해 주세요.');
  if(!clone.openingBalances||!accounts.every(a=>Number.isSafeInteger(clone.openingBalances[a.id])&&Math.abs(clone.openingBalances[a.id])<=1000000000000))throw Error('기초 잔액을 확인해 주세요.');
  const ids=new Set(),pids=new Set();
  for(const e of clone.entries){
   validateEntry(e,accounts);
   if(typeof e.id!=='string'||!e.id||e.id.length>150||ids.has(e.id))throw Error('거래 번호가 올바르지 않거나 중복됐습니다.');ids.add(e.id);
   for(const field of ['title','category','partner','note'])if(typeof e[field]!=='string'||e[field].length>(field==='note'?1000:150))throw Error('거래 내용과 비고 길이를 확인해 주세요.');
-  if(e.type!=='transfer'&&!methods.some(m=>m.id===e.method)&&!['card','cash','bank','repCard','personalCard'].includes(e.method))throw Error('결제수단을 확인해 주세요.');
+  if(e.type!=='transfer'&&!methods.some(m=>m.id===e.method)&&!['card','cash','bank','other','repCard','personalCard'].includes(e.method))throw Error('결제수단을 확인해 주세요.');
   if(e.saleLocation!==undefined&&!['info','store'].includes(e.saleLocation))throw Error('매출 구역을 확인해 주세요.');
   if(e.type==='sale'&&isInfoSale(e)&&(saleChannel(e)==='infoCard'?e.method!=='card':e.method!=='bank'))throw Error('인포 단말기는 카드, 인포 계좌이체는 계좌이체로 입력해 주세요.');
   if((e.payments||[]).length>500)throw Error('입출금 기록이 너무 많습니다.');

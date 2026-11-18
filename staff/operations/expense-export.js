@@ -40,9 +40,9 @@ function drawCards(ctx,cards,y){
  });
 }
 function columnsFor(report){
- if(report.mode==='personal')return [{title:'구매일',w:82},{title:'구매 내용 · 거래처',w:174},{title:'대납액',w:89,right:true},{title:'정산액',w:89,right:true},{title:'미정산',w:89,right:true}];
+ if(report.mode==='personal')return [{title:'구매일',w:78},{title:'구매 내용 · 거래처',w:155},{title:'결제수단',w:58},{title:'대납액',w:78,right:true},{title:'정산액',w:77,right:true},{title:'미정산',w:77,right:true}];
  if(report.mode==='sales')return [{title:'영업일',w:82},{title:'거래 내용 · 거래처',w:140},{title:'매출 구분',w:104},{title:'매출액',w:70,right:true},{title:'입금액',w:65,right:true},{title:'미수액',w:62,right:true}];
- return [{title:'영업일',w:82},{title:'거래 내용 · 거래처',w:142},{title:'지출항목',w:77},{title:'결제수단',w:82},{title:'지출액',w:69,right:true},{title:'미지급액',w:71,right:true}];
+ return [{title:'영업일',w:78},{title:'거래 내용 · 거래처',w:128},{title:'지출항목',w:65},{title:'결제수단',w:54},{title:'대납',w:44},{title:'지출액',w:77,right:true},{title:'미지급액',w:77,right:true}];
 }
 function drawTableHead(ctx,columns,y){
  ctx.fillStyle=palette.ink;ctx.fillRect(M,y,AREA,30);
@@ -54,9 +54,9 @@ function drawRow(ctx,report,columns,row,y,index){
  if(index%2===0){ctx.fillStyle=palette.pale;ctx.fillRect(M,y-3,AREA,29);}
  const unsettled=row.outstanding??Math.max(0,row.amount-row.settled);
  const cells=report.mode==='personal'?
-  [row.date,row.title,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
+  [row.date,row.title,row.method,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
   report.mode==='sales'?[row.date,row.title,row.category,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
-  [row.date,row.title,row.category,row.method,fmt(row.amount),fmt(unsettled)];
+  [row.date,row.title,row.category,row.method,row.paidOnBehalf?'대납':'—',fmt(row.amount),fmt(unsettled)];
  let x=M;
  columns.forEach((c,i)=>{
   const isTitle=i===1, isImportant=i===columns.length-1, color=isImportant&&unsettled>0?palette.red:palette.ink;
@@ -87,7 +87,7 @@ async function jpegBytes(canvas){
  return bytes;
 }
 async function renderPdfImages(report,logo){
- const columns=columnsFor(report),title=report.mode==='personal'?'개인카드 대납 정산 내역서':report.mode==='sales'?'매출관리 내보내기':'지출관리 내보내기';
+ const columns=columnsFor(report),title=report.mode==='personal'?'대납 정산 내역서':report.mode==='sales'?'매출관리 내보내기':'지출관리 내보내기';
  const groups=paginate(report.rows||[]),images=[];
  for(let i=0;i<groups.length;i++){
   const page=newPage(logo,title,periodText(report),i+1),ctx=page.ctx,firstPage=i===0;

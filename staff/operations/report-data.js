@@ -1,4 +1,4 @@
-import {summarize,inRange,saleChannel,saleMethodName,migrateSalesChannels,groupPayrollPeriod,paidAmount,outstanding} from './core.js?v=20261110-ux';
+import {paymentMethodLabel,isPaidOnBehalf,summarize,inRange,saleChannel,saleMethodName,migrateSalesChannels,groupPayrollPeriod,paidAmount,outstanding} from './core.js?v=20261118-expense-payment';
 
 export const REPORT_BASIS='매출·지출·급여는 영업일 기준, 카드 수수료는 정산일 기준입니다. 기타 입금과 자금 이동은 제외합니다.';
 export const reportPeriod=range=>range.start===range.end?range.start:range.start+' ~ '+range.end;
@@ -54,7 +54,7 @@ export function reportSheets(report){
    ['점포 카드 매출',t.card],['점포 현금 매출',t.cash],['점포 계좌이체 매출',t.bank],['점포 매출 합계',t.storeTotal],['인포 단말기 매출',t.infoCard],['인포 계좌이체 매출',t.infoBank],['인포 매출 합계',t.info],...(t.other?[['기타 매출',t.other]]:[]),['환불',-t.refund],['매출 합계',s.revenue],['일반 지출',s.expenses],['직원 급여',s.payrollAccrued],['카드 정산 수수료',s.fees],['비용 합계',s.totalCosts],['운영수익',s.profit],['미지급 지출·환불',s.payables],['미지급 직원 급여',s.payrollPending],['미수 매출',s.receivables],['집계 기준',REPORT_BASIS],['급여 기준','선택 기간 근무분의 공제 후 지급대상액. 선지급과 잔금은 비용에 중복 합산하지 않습니다.'],['직원급여 시트의 지급액','선택 기간 근무분에 연결된 지급 누계. 실제 이체일 기준 합계와 다를 수 있습니다.'],['운영수익','등록된 자료를 기준으로 한 참고 집계입니다.']]),
   sheet('일자별',['영업일','점포 카드 매출','점포 현금 매출','점포 계좌이체 매출','점포 매출 합계','인포 단말기 매출','인포 계좌이체 매출','인포 매출 합계','기타 매출','환불','매출 합계','일반 지출','카드 수수료','직원 급여','비용 합계','운영수익','마감 상태'],report.daily.map(d=>[d.date,d.card,d.cash,d.bank,d.storeTotal,d.infoCard,d.infoBank,d.info,d.other,-d.refund,d.revenue,d.expenses,d.fees,d.payroll,d.totalCosts,d.profit,closingLabel(d)])),
   sheet('매출내역',['영업일','구분','거래 내용','분류','결제수단','거래처','매출액','비고'],report.sales.map(e=>[e.businessDate,e.type==='refund'?'환불':'매출',e.title,e.category||'',saleMethodName(e),e.partner||'',e.type==='refund'?-e.amount:e.amount,e.note||''])),
-  sheet('지출내역',['영업일','거래 내용','분류','거래처','지출액','비고'],report.expenses.map(e=>[e.businessDate,e.title,e.category||'',e.partner||'',e.amount,e.note||''])),
+  sheet('지출내역',['영업일','거래 내용','분류','결제수단','대납 여부','거래처','지출액','비고'],report.expenses.map(e=>[e.businessDate,e.title,e.category||'',paymentMethodLabel(e),isPaidOnBehalf(e)?'대납':'일반',e.partner||'',e.amount,e.note||''])),
   sheet('직원급여',['직원','팀','직책','근무일수','발생 급여','선지급 포함 지급액','미지급액'],report.payrollGroups.map(e=>[e.employee,e.team,e.role,e.workDays,e.amount,e.paid,e.pending]))
  ];
 }
