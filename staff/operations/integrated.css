@@ -258,3 +258,32 @@ dialog{overscroll-behavior:contain;max-height:calc(100dvh - 32px)}
 .expense-reimbursement{display:flex;align-items:center;gap:9px;margin-top:16px;font-weight:600}.expense-reimbursement input{width:18px;height:18px;accent-color:#355e48}.reimbursement-help{display:block;margin:7px 0 16px;color:#6a7f71;line-height:1.6}.paid-on-behalf-badge{display:inline-block;margin-left:7px;padding:2px 6px;border-radius:4px;background:#f1eadc;color:#8b6c3d;font-size:11px;font-weight:500;white-space:nowrap}
 
 .expense-method-field>.field{margin-bottom:0}.expense-method-field .expense-reimbursement{margin-top:12px}.expense-method-field .reimbursement-help{font-size:12px;margin-bottom:0}
+
+.receipt-points {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;padding:12px 15px;margin:8px 0 14px;background:#f0f5ef;border-radius:9px}
+.receipt-points[hidden]{display:none}
+.receipt-points .field{margin:0}
+.receipt-points strong{display:block;font-size:18px;color:#305342}
+.receipt-file{margin-top:15px}
+.receipt-file input{max-width:100%;padding:6px}
+.receipt-controls,.receipt-connect{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.receipt-controls{padding:14px 18px}
+.receipt-connect details{max-width:100%}
+.receipt-connect .field{margin:0;min-width:min(260px,100%);max-width:100%}
+.receipt-connect small,.receipt-account,.receipt-row time,.receipt-row span{font-size:12px;color:#506655}
+.receipt-connect small{width:100%}
+.receipt-notice{padding:4px 18px;overflow-wrap:anywhere;color:#4f6255;font-size:13px}
+.receipt-panel .panel-head{flex-wrap:wrap;gap:12px}
+.receipt-row,.receipt-missing-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:13px 18px;border-top:1px solid #e4e9e3}
+.receipt-row>div{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.receipt-row>div:last-child{text-align:right}
+.receipt-row .text-btn{overflow-wrap:anywhere;text-align:right}
+.receipt-missing{padding:12px 18px}
+.receipt-missing summary,.receipt-connect summary{cursor:pointer}
+.receipt-missing-item{width:100%;padding:8px 0;background:none;text-align:left}
+.receipt-queue-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) auto;gap:8px;align-items:center;margin:8px 0}
+.receipt-queue-item span,#receipt-preview-name{overflow-wrap:anywhere}
+.receipt-queue-item select{min-width:0}
+#receipt-body .receipt-controls{padding:12px 0}
+#receipt-preview-body img{display:block;max-width:100%;margin:0 auto 12px}
+@media(max-width:540px){.receipt-controls{align-items:stretch}.receipt-points{gap:8px}.receipt-queue-item{grid-template-columns:minmax(0,1fr) auto}.receipt-queue-item span{grid-column:1/-1}}
+.receipt-voucher{grid-column:1/-1;font-size:12px;color:#506655}.receipt-voucher summary{cursor:pointer}.receipt-voucher .field{margin-top:8px}

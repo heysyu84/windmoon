@@ -40,6 +40,12 @@ function drawCards(ctx,cards,y){
  });
 }
 function columnsFor(report){
+ if(report.showPoints){
+  const date={title:'구매일',w:65},title={title:'구매 내용 · 거래처',w:report.mode==='personal'?108:103};
+  const number=(title,w)=>({title,w,right:true});
+  return report.mode==='personal'?[date,title,{title:'결제수단',w:43},number('실결제액',58),number(report.hasVouchers?'포인트 · 상품권':'포인트(P)',53),number('대납액',69),number('정산액',63),number('미정산',64)]:
+   [date,title,{title:'지출항목',w:50},{title:'결제수단',w:43},{title:'대납',w:35},number('실결제액',55),number(report.hasVouchers?'포인트 · 상품권':'포인트(P)',52),number('지출액',61),number('미지급액',59)];
+ }
  if(report.mode==='personal')return [{title:'구매일',w:78},{title:'구매 내용 · 거래처',w:155},{title:'결제수단',w:58},{title:'대납액',w:78,right:true},{title:'정산액',w:77,right:true},{title:'미정산',w:77,right:true}];
  if(report.mode==='sales')return [{title:'영업일',w:82},{title:'거래 내용 · 거래처',w:140},{title:'매출 구분',w:104},{title:'매출액',w:70,right:true},{title:'입금액',w:65,right:true},{title:'미수액',w:62,right:true}];
  return [{title:'영업일',w:78},{title:'거래 내용 · 거래처',w:128},{title:'지출항목',w:65},{title:'결제수단',w:54},{title:'대납',w:44},{title:'지출액',w:77,right:true},{title:'미지급액',w:77,right:true}];
@@ -53,14 +59,16 @@ function drawTableHead(ctx,columns,y){
 function drawRow(ctx,report,columns,row,y,index){
  if(index%2===0){ctx.fillStyle=palette.pale;ctx.fillRect(M,y-3,AREA,29);}
  const unsettled=row.outstanding??Math.max(0,row.amount-row.settled);
+ const breakdown=report.showPoints?[fmt(row.receiptPaid),fmt(row.points)]:[];
  const cells=report.mode==='personal'?
-  [row.date,row.title,row.method,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
+  [row.date,row.title,row.method,...breakdown,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
   report.mode==='sales'?[row.date,row.title,row.category,fmt(row.amount),fmt(row.settled),fmt(unsettled)]:
-  [row.date,row.title,row.category,row.method,row.paidOnBehalf?'대납':'—',fmt(row.amount),fmt(unsettled)];
+  [row.date,row.title,row.category,row.method,row.paidOnBehalf?'대납':'—',...breakdown,fmt(row.amount),fmt(unsettled)];
  let x=M;
  columns.forEach((c,i)=>{
   const isTitle=i===1, isImportant=i===columns.length-1, color=isImportant&&unsettled>0?palette.red:palette.ink;
   text(ctx,cells[i],c.right?x+c.w-8:x+8,y+12,i===0?8.8:8.8,{bold:isImportant,right:!!c.right,color,maxWidth:c.w-16,fit:i===0||!!c.right});
+  if(report.hasVouchers&&c.title==='포인트 · 상품권')text(ctx,'상품권 '+fmt(row.voucher),x+c.w-8,y+24,7.1,{color:palette.muted,right:true,maxWidth:c.w-12,fit:true});
   if(isTitle)text(ctx,row.partner||' ',x+8,y+24,7.7,{color:palette.muted,maxWidth:c.w-16});
   x+=c.w;
  });
@@ -140,7 +148,7 @@ export async function createExpensePdf(report){
  if(document.fonts){await Promise.all([document.fonts.load('400 11px Pretendard'),document.fonts.load('600 11px Pretendard')]);}
  const logo=await loadLogo();
  const rows=(report.rows||[]).slice().sort((a,b)=>(report.mode==='personal'?(a.outstanding===0?1:0)-(b.outstanding===0?1:0):0)||b.date.localeCompare(a.date));
- return pdfFromImages(await renderPdfImages({...report,rows},logo));
+ return pdfFromImages(await renderPdfImages({...report,rows,showPoints:report.mode!=='sales'&&rows.some(row=>row.points>0||row.voucher>0),hasVouchers:rows.some(row=>row.voucher>0)},logo));
 }
 export function downloadExpensePdf(bytes,name){
  const blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob),a=document.createElement('a');

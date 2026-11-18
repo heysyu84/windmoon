@@ -11,6 +11,16 @@ export const selectablePaymentMethods=state=>paymentMethodDefinitions(state).fil
 export const expensePaymentMethod=entry=>['card','repCard','personalCard'].includes(entry?.method)?'card':['cash','bank'].includes(entry?.method)?entry.method:'other';
 // Explicit flags override the legacy personal-card classification, including false.
 export const isPaidOnBehalf=entry=>entry?.type==='expense'&&(typeof entry.paidOnBehalf==='boolean'?entry.paidOnBehalf:entry.method==='personalCard');
+// The existing ledger amount is the full cost. Points are a component of it at 1 KRW each.
+export const receiptPaidAmount = entry => entry.amount - (entry.personalPoints ?? 0) - (entry.personalVoucherAmount ?? 0);
+export function reimbursementAmount(receiptPaid, personalPoints = 0, voucherAmount = 0) {
+ if (!Number.isSafeInteger(receiptPaid) || receiptPaid < 0) throw Error('영수증 실결제액은 0원 이상의 정수로 입력해 주세요.');
+ if (!Number.isSafeInteger(personalPoints) || personalPoints < 0) throw Error('개인 포인트는 0 이상의 정수로 입력해 주세요.');
+ if (!Number.isSafeInteger(voucherAmount) || voucherAmount < 0) throw Error('유상 상품권 사용액을 확인해 주세요.');
+ const total = receiptPaid + personalPoints + voucherAmount;
+ if (total < 1 || total > 99999999999) throw Error('실결제액과 개인 사용분의 합계를 확인해 주세요.');
+ return total;
+}
 export function matchesExpenseFilters(entry,filters={}){
  const query=(filters.search||'').trim().toLocaleLowerCase('ko');
  return (!query||[entry.title,entry.partner,entry.category,entry.note].join(' ').toLocaleLowerCase('ko').includes(query))
@@ -115,7 +125,7 @@ export function summarize(state,range){
  const events=cashEvents(state,range);
  const fees=-events.filter(e=>e.type==='fee').reduce((n,e)=>n+e.amount,0);
  const inflow=events.filter(e=>e.type!=='transfer'&&e.amount>0).reduce((n,e)=>n+e.amount,0);
- const outflow=-events.filter(e=>e.type!=='transfer'&&e.amount<0).reduce((n,e)=>n+e.amount,0);
+ const outflow=events.filter(e=>e.type!=='transfer'&&e.amount<0).reduce((n,e)=>n-e.amount,0);
  const receivables=entries.filter(e=>e.type==='sale').reduce((n,e)=>n+outstanding(e),0)+previousInfo;
  const payables=entries.filter(e=>e.type==='expense'||e.type==='refund').reduce((n,e)=>n+outstanding(e),0);
  const payrollPending=pendingPayroll(payroll);
@@ -141,6 +151,12 @@ export function addPayment(entry,payment,accounts=ACCOUNTS){
 }
 export function validateEntry(e,accounts=ACCOUNTS){
  if(e.paidOnBehalf!==undefined&&(typeof e.paidOnBehalf!=='boolean'||(e.paidOnBehalf&&e.type!=='expense')))throw Error('대납 여부를 확인해 주세요.');
+ if(e.personalPoints!==undefined||e.personalVoucherAmount!==undefined){
+  if(!isPaidOnBehalf(e))throw Error('개인 포인트와 유상 상품권은 대납 건에 입력해 주세요.');
+  if(e.personalPoints!==undefined&&(!Number.isSafeInteger(e.personalPoints)||e.personalPoints<0||e.personalPoints>e.amount))throw Error('개인 포인트를 확인해 주세요.');
+  if(e.personalVoucherAmount!==undefined&&(!Number.isSafeInteger(e.personalVoucherAmount)||e.personalVoucherAmount<0))throw Error('유상 상품권 사용액을 확인해 주세요.');
+  reimbursementAmount(receiptPaidAmount(e),e.personalPoints,e.personalVoucherAmount);
+ }
  if(!TYPE_NAMES[e.type])throw new Error('거래 종류를 선택해 주세요.');
  if(!e.title?.trim())throw new Error('거래 내용을 입력해 주세요.');
  if(!Number.isSafeInteger(e.amount)||e.amount<=0||e.amount>99999999999)throw new Error('금액은 1원 이상 정수로 입력해 주세요.');
