@@ -1,9 +1,10 @@
-import {ACCOUNTS,accountDefinitions,selectableAccounts,paymentMethodDefinitions,selectablePaymentMethods,paymentMethodLabel,personalCardSummary,allocatePersonalReimbursement,SALE_CHANNELS,saleChannel,CATEGORIES,expenseCategoryOptions,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,dailySales,saleMethodName,savedVendors} from './core.js?v=20261112-unified-ui';
+import {ACCOUNTS,accountDefinitions,selectableAccounts,paymentMethodDefinitions,selectablePaymentMethods,paymentMethodLabel,personalCardSummary,allocatePersonalReimbursement,SALE_CHANNELS,saleChannel,CATEGORIES,expenseCategoryOptions,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,saleMethodName,savedVendors} from './core.js?v=20261112-unified-ui';
 import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPersonalCardDashboard,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261112-unified-ui';
 import {buildReport,assertReportReady,reportSheets,closingLabel} from './report-data.js?v=20261112-unified-ui';
 import {renderReport,reportBreakdown,reportExpenses} from './report-view.js?v=20261112-unified-ui';
 import {markedDates,datePickerHtml} from './calendar.js?v=20261112-unified-ui';
 import {fetchPayrollSnapshot} from './payroll-cache.js?v=20261104-d1';
+import {startWorkspaceSync} from '../workspace-sync.mjs';
 // Memory-only cache: survives navigating between workspace panels, never
 // persists payroll or bank data in localStorage/sessionStorage.
 let sharedPayrollCache=null;
@@ -16,7 +17,7 @@ let reportSnapshot=null,reportExporting=false,expenseExporting=false;
 const operatingDay=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()))<12?shiftDate(today,-1):today;
 const ui={page:NAV.some(n=>n.id===workspaceOptions.page)?workspaceOptions.page:'overview',period:'month',day:operatingDay,month:operatingDay.slice(0,7),start:shiftDate(today,-6),end:today,fundsView:'cash',expenseView:'ledger',filters:{search:'',status:'',method:''}};
 let editorEntry=null,editorType='sale',toastTimer,confirmCallback;
-let calendarField=null,calendarMonth=ui.month;
+let calendarField=null,calendarMonth=ui.month,closingDirty=false;
 const uid=()=>crypto.randomUUID();
 const options=(values,selected)=>values.map(([v,l])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(l)}</option>`).join('');
 function getRange(){return ui.period==='day'?{start:ui.day,end:ui.day}:ui.period==='month'?monthRange(ui.month):{start:ui.start,end:ui.end};}
@@ -24,7 +25,7 @@ function toast(text){if(disposed)return;$('#toast').textContent=text;$('#toast')
 let merged=false;
 async function prepareWorkspace(){if(merged)return;for(let n=0;n<1000;n++){const response=await workspaceOptions.apiFetch('/api/workspace/merge',{method:'POST',signal:controller.signal});const value=await response.json();if(!response.ok)throw Error(value.error||'운영자료를 통합하지 못했습니다. 다시 연결해 주세요.');if(value.phase==='active'){merged=true;return;}$('#save-status').textContent='운영자료 통합 중 · '+(value.completed||0)+' / '+(value.total||0);}throw Error('통합을 이어서 진행하려면 새로고침해 주세요.');}
 async function jsonFetch(path,init={}) {
- const response=await workspaceOptions.apiFetch(path.replace('/api/operations/','/api/suite/operations/'),{...init,signal:controller.signal,headers:{...(init.body?{'Content-Type':'application/json'}:{}),...init.headers}});
+ const response=await workspaceOptions.apiFetch(path.replace('/api/operations/','/api/suite/operations/'),{...init,signal:init.signal??controller.signal,headers:{...(init.body?{'Content-Type':'application/json'}:{}),...init.headers}});
  let body;try{body=await response.json();}catch{throw Error('서버 연결을 확인해 주세요.');}
  if(!response.ok)throw Object.assign(Error(body.error||'서버 요청에 실패했습니다.'),{status:response.status});return body;
 }
@@ -57,6 +58,30 @@ async function refreshServer(quiet=false){
  }else{if(!quiet)toast(ledger.reason.message);serverReady=false;}
  if(payroll.status==='rejected'&&!quiet&&serverReady)toast(payroll.reason.message);
  loading=false;updateConnectionBanner();renderPeriod();renderContent();
+}
+function canCheckForChanges(){
+ return !disposed&&serverReady&&!loading&&!saving&&!reportExporting&&!expenseExporting&&!closingDirty&&!calendarField
+  &&!root.querySelector('dialog[open]')&&!root.activeElement?.matches('input,select,textarea');
+}
+async function refreshChangedRecords({signal,canApply}){
+ const {ledgerRevision,payrollRevision}=await jsonFetch('/api/operations/state?revisionOnly=1',{signal});
+ if(!canApply())return;
+ const previousRevision=revision,previousPayroll=payrollData;
+ const ledgerChanged=ledgerRevision>previousRevision;
+ const payrollChanged=!previousPayroll||previousPayroll.stale||payrollRevision>previousPayroll.revision;
+ if(!ledgerChanged&&!payrollChanged)return;
+ const [ledger,payroll]=await Promise.allSettled([
+  ledgerChanged?jsonFetch('/api/operations/state',{signal}):null,
+  payrollChanged?fetchPayrollSnapshot(path=>jsonFetch(path,{signal}),previousPayroll):null
+ ]);
+ if(!canApply()||revision!==previousRevision||payrollData!==previousPayroll)return;
+ const nextLedger=ledger.status==='fulfilled'?ledger.value:null;
+ const nextPayroll=payroll.status==='fulfilled'?payroll.value:null;
+ if(!nextLedger&&!nextPayroll)return;
+ if(nextLedger?.revision>revision){revision=nextLedger.revision;serverState=nextLedger.state;}
+ if(nextPayroll){payrollData=nextPayroll;sharedPayrollCache=nextPayroll;}
+ state=attachPayroll(serverState);
+ updateConnectionBanner();renderPeriod();renderContent();
 }
 async function persist(next,label='장부 저장'){
  if(saving){toast('저장 중입니다. 잠시만 기다려 주세요.');return false;}
@@ -93,7 +118,7 @@ function chooseCalendarDate(field,date){
  renderPeriod();
  renderContent();
 }
-function renderContent(){if(disposed)return;const r=getRange();$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'장부와 급여를 불러오고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료를 불러오지 못해 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 조회해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">급여를 다시 불러오지 못해 마지막 조회 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{period:ui.period,dailyOpen:$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'?('<div class="funds-view-switch"><span>하루 매출 합계는 일마감에서 입력합니다.</span><button class="secondary-btn" type="button" data-action="today-closing">오늘 영업일 마감</button><button type="button" class="secondary-btn" data-sales-pdf="1">'+icon('arrowDown',14)+' 매출 PDF 내보내기</button></div><p class="form-error" role="alert" data-sales-pdf-error></p>'+renderLedger(state,r,ui.page,ui.filters)):ui.page==='expenses'?('<div class="funds-view-switch"><span>지출 메뉴</span><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">일반 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">개인카드 대납 관리 · '+money(personalCardSummary(state).outstanding)+'원</button></div><button type="button" class="secondary-btn" data-expense-pdf="1">'+icon('arrowDown',14)+' 지출 PDF 내보내기</button></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
+function renderContent(){if(disposed)return;closingDirty=false;const r=getRange();$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'장부와 급여를 불러오고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료를 불러오지 못해 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 조회해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">급여를 다시 불러오지 못해 마지막 조회 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{period:ui.period,dailyOpen:$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r):ui.page==='sales'?('<div class="funds-view-switch"><span>하루 매출 합계는 일마감에서 입력합니다.</span><button class="secondary-btn" type="button" data-action="today-closing">오늘 영업일 마감</button><button type="button" class="secondary-btn" data-sales-pdf="1">'+icon('arrowDown',14)+' 매출 PDF 내보내기</button></div><p class="form-error" role="alert" data-sales-pdf-error></p>'+renderLedger(state,r,ui.page,ui.filters)):ui.page==='expenses'?('<div class="funds-view-switch"><span>지출 메뉴</span><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">일반 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">개인카드 대납 관리 · '+money(personalCardSummary(state).outstanding)+'원</button></div><button type="button" class="secondary-btn" data-expense-pdf="1">'+icon('arrowDown',14)+' 지출 PDF 내보내기</button></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
 function renderPage(){if(disposed)return;
  if(ui.page==='closing')ui.period='day';
  const n=NAV.find(n=>n.id===ui.page);$('#page-title').textContent=n.name;$('#eyebrow').textContent=n.eyebrow;$('#page-description').textContent=n.description;$('#period-note').textContent=ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';
@@ -444,7 +469,9 @@ for(const dialog of root.querySelectorAll('dialog')){dialog.addEventListener('cl
 
 listen('submit',event=>{if(event.target.id==='closing-form'){event.preventDefault();submitClosing('closed');}});
 listen('input',event=>{
- if(!event.target.closest('#closing-form'))return;const f=$('#closing-form'),sales=dailySales(state,ui.day),summary=state.entries.filter(e=>e.type==='refund'&&e.businessDate===ui.day).reduce((n,e)=>n+e.amount,0);
+ const f=event.target.closest('#closing-form');if(!f)return;
+ closingDirty=true;
+ const summary=state.entries.filter(e=>e.type==='refund'&&e.businessDate===ui.day).reduce((n,e)=>n+e.amount,0);
  const values=['card','cash','bank'].map(k=>Number(f.elements[k].value)||0),storeTotal=values.reduce((a,b)=>a+b,0),infoTotal=(Number(f.elements.infoCard.value)||0)+(Number(f.elements.infoBank.value)||0);$('#closing-total').textContent=money(storeTotal+infoTotal-summary)+'원';
  $('#closing-store').textContent=money(storeTotal)+'원';$('#closing-info').textContent=money(infoTotal)+'원';
  const currentCash=state.closings?.[ui.day]?.expectedCash;
@@ -453,6 +480,7 @@ listen('input',event=>{
 });
 
 renderPage();updateConnectionBanner();refreshServer();
-return {navigate(page){if(NAV.some(n=>n.id===page)&&ui.page!==page){ui.page=page;ui.filters={search:'',status:'',method:''};renderPage();}},canLeave(){return !saving&&!reportExporting&&(!root.querySelector('dialog[open]')||window.confirm('열려 있는 입력 창을 닫고 이동할까요?'));},refresh:refreshServer,destroy(){disposed=true;controller.abort();for(const dialog of root.querySelectorAll('dialog[open]'))dialog.close();workspaceOptions.onDialogChange?.(false);clearTimeout(toastTimer);}};
+const stopSync=startWorkspaceSync({canCheck:canCheckForChanges,check:refreshChangedRecords});
+return {navigate(page){if(NAV.some(n=>n.id===page)&&ui.page!==page){ui.page=page;ui.filters={search:'',status:'',method:''};renderPage();}},canLeave(){return !saving&&!reportExporting&&(!root.querySelector('dialog[open]')||window.confirm('열려 있는 입력 창을 닫고 이동할까요?'));},refresh:refreshServer,destroy(){disposed=true;stopSync();controller.abort();for(const dialog of root.querySelectorAll('dialog[open]'))dialog.close();workspaceOptions.onDialogChange?.(false);clearTimeout(toastTimer);}};
 }
 
