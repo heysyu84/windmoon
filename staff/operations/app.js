@@ -4,7 +4,7 @@ import {buildReport,assertReportReady,reportSheets,closingLabel} from './report-
 import {renderReport,reportBreakdown,reportExpenses} from './report-view.js?v=20261119-private-receipts';
 import {markedDates,datePickerHtml} from './calendar.js?v=20261119-expense-calendar';
 import {fetchPayrollSnapshot} from './payroll-cache.js?v=20261104-d1';
-import {createReceiptPanel,receiptFileInput} from './receipts.js?v=20261119-private-receipts';
+import {createReceiptPanel,receiptFileInput} from './receipts.js?v=20261119-receipt-list';
 import {startWorkspaceSync} from '../workspace-sync.mjs';
 // Memory-only cache: survives navigating between workspace panels, never
 // persists payroll or bank data in localStorage/sessionStorage.
