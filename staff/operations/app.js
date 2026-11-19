@@ -2,9 +2,9 @@ import {receiptPaidAmount,reimbursementAmount,EXPENSE_PAYMENT_METHODS,expensePay
 import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,renderPersonalCardDashboard,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261119-private-receipts';
 import {buildReport,assertReportReady,reportSheets,closingLabel} from './report-data.js?v=20261119-private-receipts';
 import {renderReport,reportBreakdown,reportExpenses} from './report-view.js?v=20261119-private-receipts';
-import {markedDates,datePickerHtml} from './calendar.js?v=20261119-expense-calendar';
+import {markedDates,datePickerHtml} from './calendar.js?v=20261119-expense-priority';
 import {fetchPayrollSnapshot} from './payroll-cache.js?v=20261104-d1';
-import {createReceiptPanel,receiptFileInput} from './receipts.js?v=20261119-receipt-list';
+import {createReceiptPanel,receiptFileInput} from './receipts.js?v=20261119-replace-photo';
 import {startWorkspaceSync} from '../workspace-sync.mjs';
 // Memory-only cache: survives navigating between workspace panels, never
 // persists payroll or bank data in localStorage/sessionStorage.

@@ -21,7 +21,10 @@ export function markedDates(state) {
  for (const [date,closing] of Object.entries(state?.closings||{})) {
   if (!closing) continue;
   const day = dayFor(date);
-  if (day) day.closing = closing.status==='closed'?'closed':'draft';
+  if (day) {
+   day.closing = closing.status==='closed'?'closed':'draft';
+   day.hasClosingSales = [closing.card, closing.cash, closing.bank, closing.info].some(amount => Number(amount) > 0);
+  }
  }
  return dates;
 }
@@ -38,8 +41,8 @@ const legend = Object.entries(statuses).map(([status, {label}]) =>
 
 function dayStatus(day) {
  if (!day) return '';
+ if (day.expenses > 0 && day.expenses === day.entries && day.payroll === 0 && !day.hasClosingSales) return 'expense-only';
  if (day.closing) return day.closing;
- if (day.expenses > 0 && day.expenses === day.entries && day.payroll === 0) return 'expense-only';
  return day.entries || day.payroll ? 'pending' : '';
 }
 
@@ -62,7 +65,9 @@ export function datePickerHtml({field,value,opened=false,viewMonth,counts=new Ma
  const days=Array.from({length:42},(_,i)=>{
   const date=shiftDay(gridStart,i),day=Number(date.slice(8)),info=counts.get(date);
   const status=dayStatus(info);
-  const statusText=status?statuses[status].description:'등록 기록 없음';
+  const descriptions=[status?statuses[status].description:'등록 기록 없음'];
+  if(status==='expense-only'&&info.closing)descriptions.push(statuses[info.closing].description);
+  const statusText=descriptions.join(' · ');
   const detail=info?' · 거래 '+info.entries+'건 · 직원급여 '+info.payroll+'건':'';
   const flags=[date.slice(0,7)===validMonth?'':'other-month',date===today?'today':'',isMonth?(date===value+'-01'?'selected':''):(date===value?'selected':''),status?'has-data status-'+status:''].filter(Boolean).join(' ');
   return '<button type="button" class="operations-calendar-day '+flags+'" data-calendar-day="'+date+'" aria-label="'+date+' · '+statusText+detail+'" title="'+date+' · '+statusText+detail+'" '+(date===value?'aria-current="date"':'')+'><span>'+day+'</span>'+(status?'<i class="operations-calendar-dot" aria-hidden="true"></i>':'')+'</button>';

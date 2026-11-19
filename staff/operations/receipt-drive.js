@@ -1,7 +1,7 @@
 const API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const FIELDS = 'id,name,mimeType,description,appProperties,createdTime';
+const FIELDS = 'id,name,mimeType,description,appProperties,createdTime,parents,size,sha256Checksum';
 const FOLDER = 'application/vnd.google-apps.folder';
 const CLIENT_KEY = 'windmoon.receipts.googleClientId';
 const mimeByExtension = {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',pdf:'application/pdf'};
@@ -20,6 +20,43 @@ export function mimeForReceipt(file) {
 export async function receiptDigest(file) {
  const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()));
  return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function receiptRecord(file) {
+ let link;
+ try { link=JSON.parse(file.description); } catch {}
+ return {...file,entryId:typeof link?.entryId==='string'?link.entryId:'',date:file.appProperties?.purchaseDate||'',order:link?.order};
+}
+export function attachmentOrder(file) {
+ const order=file.order;
+ if(order&&[order.createdTime,order.name,order.id].every(value=>typeof value==='string'))return order;
+ return {createdTime:file.createdTime||'',name:file.name,id:file.id};
+}
+function versionOf(file) {
+ const props=file.appProperties;
+ // A copy made in Drive has a new ID. It remains an independent receipt.
+ if(!props?.wmSlot||props.wmFile!==file.id||!file.mimeType?.startsWith('image/'))return 0;
+ const version=Number(props.wmVersion);
+ const verified=file.sha256Checksum?file.sha256Checksum===props.digest:Number(file.size)>0&&String(file.size)===props.wmBytes;
+ return verified&&Number.isSafeInteger(version)&&version>0?version:0;
+}
+const slotId=file=>versionOf(file)?file.appProperties.wmSlot:file.id;
+function slotOf(file) {
+ return JSON.stringify([file.entryId,file.mimeType?.startsWith('image/')?'image':'file',slotId(file)]);
+}
+const descending=(a,b)=>a===b?0:a>b?-1:1;
+function currentReceipts(records) {
+ // A completed upload is the commit point. Rereading Drive can finish a replacement after a tab closes.
+ const current=new Map(),retired=[];
+ const unique=new Map(records.map(file=>[file.id,file]));
+ const sorted=[...unique.values()].sort((a,b)=>versionOf(b)-versionOf(a)||
+  descending(a.createdTime||'',b.createdTime||'')||descending(a.id,b.id));
+ for(const file of sorted){
+  const slot=slotOf(file);
+  if(current.has(slot))retired.push(file);
+  else current.set(slot,file);
+ }
+ return {current,retired};
 }
 
 export function loadGoogleIdentity() {
@@ -91,13 +128,27 @@ export function createReceiptDrive(signal) {
   }while(next);
   return files;
  }
- async function originals(){
-  const files=await list("appProperties has { key='wmKind' and value='receipt-v1' }",FIELDS);
-  return files.map(file=>{
-   let link;try{link=JSON.parse(file.description);}catch{}
-   return {...file,entryId:typeof link?.entryId==='string'?link.entryId:'',date:file.appProperties?.purchaseDate||''};
-  });
+ async function readOriginals(){
+  const listed=await list("appProperties has { key='wmKind' and value='receipt-v1' }",FIELDS);
+  return listed.map(receiptRecord);
  }
+ async function finishReplacements(records){
+  const {current,retired}=currentReceipts(records);
+  let pendingTrash=0;
+  for(const file of retired){
+   try{
+    const url=API+'/files/'+encodeURIComponent(file.id)+'?fields=id,trashed';
+    const result=await (await request(url,{method:'PATCH',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({trashed:true,appProperties:{wmKind:'receipt-replaced'}})})).json();
+    if(result.trashed!==true)pendingTrash++;
+   }catch(error){
+    signal.throwIfAborted();
+    if(error.status!==404)pendingTrash++;
+   }
+  }
+  return {files:[...current.values()],pendingTrash};
+ }
+ async function originals(){return finishReplacements(await readOriginals());}
  async function folder(key,name,parent) {
   if(folders.has(key))return folders.get(key);
   const query="mimeType = '"+FOLDER+"' and '"+parent+"' in parents and appProperties has { key='wmFolder' and value='"+key+"' }";
@@ -109,20 +160,28 @@ export function createReceiptDrive(signal) {
   }
   folders.set(key,id);return id;
  }
- async function upload(entry,file,knownFiles){
-  const mime=mimeForReceipt(file);
-  const hash=await receiptDigest(file);
-  const already=knownFiles.find(f=>f.entryId===entry.id&&f.appProperties?.digest===hash);
-  if(already)return already;
-  const root=await folder('windmoon-receipts-v1','풍월관 영수증','root'),month=entry.businessDate.slice(0,7);
-  const parent=await folder(month,month,root),key=entry.id+'|'+hash;
+ async function storeFile(entry,file,mime,hash,previous){
+  let parent=previous?.parents?.[0];
+  if(!parent){
+   const root=await folder('windmoon-receipts-v1','풍월관 영수증','root'),month=entry.businessDate.slice(0,7);
+   parent=await folder(month,month,root);
+  }
+  const key=JSON.stringify([entry.id,hash,previous?.id]);
   let id=pendingIds.get(key);
   if(!id){
    const generated=await (await request(API+'/files/generateIds?count=1&space=drive')).json();
    id=generated.ids[0];pendingIds.set(key,id);
   }
-  const metadata={id,name:file.name,mimeType:mime,parents:[parent],description:JSON.stringify({entryId:entry.id}),
-   appProperties:{wmKind:'receipt-v1',purchaseDate:entry.businessDate,digest:hash}};
+  const appProperties={wmKind:'receipt-v1',purchaseDate:entry.businessDate,digest:hash};
+  const link={entryId:entry.id};
+  if(previous){
+   appProperties.wmSlot=slotId(previous);
+   appProperties.wmVersion=String(versionOf(previous)+1);
+   appProperties.wmFile=id;
+   appProperties.wmBytes=String(file.size);
+   link.order=attachmentOrder(previous);
+  }
+  const metadata={id,name:file.name,mimeType:mime,parents:[parent],description:JSON.stringify(link),appProperties};
   let saved;
   try{
    const start=await request(UPLOAD+'?uploadType=resumable&fields='+encodeURIComponent(FIELDS),{method:'POST',
@@ -134,14 +193,41 @@ export function createReceiptDrive(signal) {
   }catch(error){
    if(error.status!==409)throw error;
    saved=await (await request(API+'/files/'+encodeURIComponent(id)+'?fields='+encodeURIComponent(FIELDS))).json();
-   if(saved.appProperties?.digest!==hash||saved.description!==metadata.description)throw Error('Drive 파일을 확인하고 다시 시도해 주세요.');
   }
+  if(saved.id!==id||saved.mimeType!==mime||saved.appProperties?.digest!==hash||saved.description!==metadata.description||
+   saved.appProperties?.wmSlot!==appProperties.wmSlot||saved.appProperties?.wmVersion!==appProperties.wmVersion||
+   (previous&&versionOf(saved)!==Number(appProperties.wmVersion))||
+   (saved.size!=null&&Number(saved.size)!==file.size)||
+   (saved.sha256Checksum&&saved.sha256Checksum!==hash))throw Error('Drive에 저장된 파일을 확인하고 다시 시도해 주세요.');
   pendingIds.delete(key);
-  return {...saved,entryId:entry.id,date:entry.businessDate};
+  return receiptRecord(saved);
+ }
+ async function upload(entry,file,knownFiles){
+  const mime=mimeForReceipt(file),hash=await receiptDigest(file);
+  const already=knownFiles.find(f=>f.entryId===entry.id&&f.appProperties?.digest===hash);
+  return already||storeFile(entry,file,mime,hash);
+ }
+ async function replace(previous,file,hash){
+  const mime=mimeForReceipt(file);
+  if(!mime.startsWith('image/'))throw Error('교체할 사진은 JPG, PNG, WebP 중에서 선택해 주세요.');
+  hash??=await receiptDigest(file);
+  const records=await readOriginals();
+  const {current}=currentReceipts(records),source=current.get(slotOf(previous));
+  if(!source?.entryId||!source.mimeType.startsWith('image/'))throw Error('원본을 찾지 못했습니다. Drive 목록을 새로고침해 주세요.');
+  if((source.sha256Checksum||source.appProperties.digest)===hash){
+   return {...await finishReplacements(records),file:source,unchanged:source.id===previous.id};
+  }
+  if(source.id!==previous.id)throw Error('이미 다른 사진으로 교체된 영수증입니다. Drive 목록을 새로고침해 주세요.');
+  if([...current.values()].some(other=>other.entryId===source.entryId&&other.appProperties.digest===hash))
+   throw Error('이 구매 건에 이미 첨부한 이미지입니다. 다른 이미지를 선택해 주세요.');
+  const saved=await storeFile({id:source.entryId,businessDate:source.date},file,mime,hash,source);
+  const snapshot=await finishReplacements([...await readOriginals(),saved]);
+  const winner=snapshot.files.find(f=>slotOf(f)===slotOf(saved));
+  return {...snapshot,file:winner,unchanged:false,superseded:winner.id!==saved.id};
  }
  async function download(file){
   const response=await request(API+'/files/'+encodeURIComponent(file.id)+'?alt=media');
   return response.blob();
  }
- return {active,connect,originals,upload,download,lock,account:()=>account};
+ return {active,connect,originals,upload,replace,download,lock,account:()=>account};
 }

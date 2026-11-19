@@ -1,8 +1,13 @@
 import {isPaidOnBehalf, receiptPaidAmount, inRange, paymentMethodLabel} from './core.js?v=20261119-private-receipts';
 import {escape as esc, icon, money, shortDate} from './views.js?v=20261119-private-receipts';
-import {createReceiptDrive, clientIdForDevice, loadGoogleIdentity, mimeForReceipt,receiptDigest} from './receipt-drive.js?v=20261119-private-receipts';
+import {attachmentOrder,createReceiptDrive,clientIdForDevice,loadGoogleIdentity,mimeForReceipt,receiptDigest} from './receipt-drive.js?v=20261119-replace-photo';
 
-const acceptedFiles='image/jpeg,image/png,image/webp,application/pdf';
+const imageTypes='image/jpeg,image/png,image/webp';
+const acceptedFiles=imageTypes+',application/pdf';
+function compareAttachments(a,b) {
+ const left=attachmentOrder(a),right=attachmentOrder(b);
+ return left.createdTime.localeCompare(right.createdTime)||left.name.localeCompare(right.name,'ko')||left.id.localeCompare(right.id);
+}
 
 export function receiptFileInput(name) {
  return '<label class="field receipt-file"><span>영수증 첨부 (선택)</span><input name="'+name+'" type="file" multiple accept="'+acceptedFiles+'"><small>주문상세, 카드전표 또는 포인트 사용 내역 · 여러 장 선택 가능</small></label>';
@@ -18,7 +23,7 @@ export function groupReceipts(entries,files,range) {
   .sort((a,b)=>a.businessDate.localeCompare(b.businessDate)||a.title.localeCompare(b.title,'ko')||a.id.localeCompare(b.id))
   .map(entry=>({id:entry.id,date:entry.businessDate,title:entry.title,partner:entry.partner||'',method:paymentMethodLabel(entry),
    receiptPaid:receiptPaidAmount(entry),points:entry.personalPoints||0,voucher:entry.personalVoucherAmount||0,total:entry.amount,
-   files:[...byEntry.get(entry.id).values()].sort((a,b)=>(a.createdTime||'').localeCompare(b.createdTime||'')||a.name.localeCompare(b.name,'ko')||a.id.localeCompare(b.id))}));
+   files:[...byEntry.get(entry.id).values()].sort(compareAttachments)}));
 }
 const button=(action,label,primary=false)=>'<button type="button" data-receipt-action="'+action+'" class="'+(primary?'primary-btn':'secondary-btn')+'">'+label+'</button>';
 const chevron='<span class="receipt-chevron" aria-hidden="true"></span>';
@@ -36,6 +41,7 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
  let files=[],localFiles=[],queue=[],target='',busy=false,notice='',previewUrl='',clientId=clientIdForDevice(),loaded=false;
  let googleLoading=false,accountId='';
  let missingReturnIndex=-1;
+ let previewFile=null,replacement=null,replacementUrl='',pendingTrash=0;
  const available=()=>entries().filter(e=>e.type==='expense');
  const expense=id=>available().find(e=>e.id===id);
  const known=()=>[...(drive.active()?files:[]),...localFiles];
@@ -71,6 +77,7 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
    '<div class="receipt-controls">'+connectForm()+(drive.active()?button('reload','Drive 목록 새로고침')+button('disconnect','계정 연결 닫기'):'')+'</div>'+
    (localFiles.length?'<p class="receipt-notice">기기에서 선택한 임시 첨부는 운영 화면을 벗어나면 지워집니다.</p>':'')+
    (notice?'<p class="receipt-notice" role="status">'+esc(notice)+'</p>':'')+
+   (pendingTrash?'<p class="receipt-notice" role="status">이전 이미지 '+pendingTrash+'개의 휴지통 이동을 확인 중입니다. Drive 목록을 새로고침하면 다시 시도합니다.</p>':'')+
    (list||(showMissing?'':'<div class="empty-note">'+(drive.active()&&loaded?'선택한 기간에 첨부한 영수증이 없습니다.':'개인 Drive를 연결하거나 이번 PDF에 넣을 파일을 선택하세요.')+'</div>'))+
    (showMissing?disclosure('receipt-missing','영수증 미첨부 대납',missing.length+'건','receipt',missingList):'')+
    (orphans.length?disclosure('receipt-unlinked','장부 연결을 확인할 원본',orphans.length+'개','link',orphans.map(f=>'<li><button type="button" class="text-btn" data-receipt-view="'+esc(f.id)+'">'+esc(f.name)+'</button></li>').join('')):'')+'</section>';
@@ -124,15 +131,21 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
   if(clientId)prepareConnection();
  }
  function releasePreview(){if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl='';}}
+ function clearReplacement(){
+  if(replacementUrl)URL.revokeObjectURL(replacementUrl);
+  replacementUrl='';replacement=null;
+ }
  async function readFile(file){return file.blob||drive.download(file);}
- async function sync(){files=await drive.originals();loaded=true;}
+ function applySnapshot(snapshot){files=snapshot.files;pendingTrash=snapshot.pendingTrash;loaded=true;}
+ async function sync(){applySnapshot(await drive.originals());}
  async function run(action) {
   if(busy)return;
   busy=true;notice='';
   if($('#receipt-dialog').open)for(const el of $('#receipt-dialog').querySelectorAll('input,select,button'))el.disabled=true;
+  if($('#receipt-preview').open)setPreviewBusy('Google Drive에 연결하고 있습니다…');
   try{
    if(action==='connect'){
-    const box=$('#receipt-dialog').open?$('#receipt-dialog'):$('#page-content');
+    const box=root.querySelector('#receipt-preview[open],#receipt-dialog[open]')||$('#page-content');
     const connectButton=box.querySelector('[data-receipt-action="connect"]');
     if(connectButton){connectButton.disabled=true;connectButton.textContent='Google 계정 연결 중…';}
     const input=box.querySelector('[data-receipt-client]');if(input)clientId=input.value.trim();
@@ -177,22 +190,106 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
    }
   }catch(error){
    if(!signal.aborted){notice=error.message||'처리하지 못했습니다. 다시 시도해 주세요.';toast(notice);}
-  }finally{busy=false;redraw();}
+  }finally{
+   busy=false;redraw();
+   if($('#receipt-preview').open){$('#receipt-preview [data-close]').disabled=false;renderPreview(notice);}
+  }
+ }
+ function renderPreview(feedback=''){
+  if(!previewFile)return;
+  const shown=replacement||previewFile,url=replacementUrl||previewUrl;
+  $('#receipt-preview-name').textContent=shown.name;
+  const container=$('#receipt-preview-body'),controls=$('#receipt-preview-actions');
+  container.replaceChildren();controls.replaceChildren();
+  if(replacement||previewFile.mimeType.startsWith('image/')){
+   const img=document.createElement('img');img.src=url;img.alt=shown.name;container.append(img);
+  }
+  if(replacement){
+   if(!feedback)feedback=previewFile.blob?'이번 PDF에 사용할 이미지를 교체합니다.':'저장하면 기존 이미지는 Google Drive 휴지통으로 이동합니다.';
+   controls.innerHTML=button('cancel-replace','취소')+button('save-replace','교체 저장',true);
+   if(!previewFile.blob&&!drive.active()){
+    controls.querySelector('[data-receipt-action="save-replace"]').disabled=true;
+    controls.insertAdjacentHTML('beforeend',button('connect','Google Drive 연결',true));
+   }
+  }else{
+   const link=document.createElement('a');link.href=url;link.download=shown.name;link.className='secondary-btn';link.textContent='원본 저장';controls.append(link);
+   if(previewFile.entryId&&previewFile.mimeType.startsWith('image/'))
+    controls.insertAdjacentHTML('beforeend','<label class="primary-btn receipt-replace-picker">이미지 교체<input type="file" name="receiptReplacement" aria-label="이미지 교체" accept="'+imageTypes+'"></label>');
+  }
+  $('#receipt-preview-status').textContent=feedback;
+ }
+ function setPreviewBusy(message){
+  for(const control of $('#receipt-preview').querySelectorAll('button,input'))control.disabled=true;
+  $('#receipt-preview-status').textContent=message;
+ }
+ async function chooseReplacement(file){
+  if(!file||!previewFile)return;
+  busy=true;setPreviewBusy('이미지를 확인하고 있습니다…');
+  let url='',message='';
+  try{
+   if(!mimeForReceipt(file).startsWith('image/'))throw Error('JPG, PNG, WebP 이미지를 선택해 주세요.');
+   url=URL.createObjectURL(file);
+   const img=new Image();img.src=url;
+   try{await img.decode();}catch{throw Error('이미지를 열 수 없습니다. 파일을 다시 선택해 주세요.');}
+   signal.throwIfAborted();
+   clearReplacement();replacement=file;replacementUrl=url;url='';
+  }catch(error){message=error.message;}
+  finally{
+   if(url)URL.revokeObjectURL(url);
+   busy=false;
+   if(!signal.aborted){
+    renderPreview(message);$('#receipt-preview [data-close]').disabled=false;
+    $('#receipt-preview-actions button.primary-btn:enabled,[name="receiptReplacement"]')?.focus({preventScroll:true});
+   }
+  }
+ }
+ async function saveReplacement(){
+  if(!replacement||!previewFile)return;
+  busy=true;setPreviewBusy('이미지를 교체하고 있습니다…');
+  let errorMessage='';
+  try{
+   const hash=await receiptDigest(replacement),source=previewFile;
+   if(known().some(f=>f.id!==source.id&&f.entryId===source.entryId&&(f.digest||f.appProperties?.digest)===hash))
+    throw Error('이 구매 건에 이미 첨부한 이미지입니다. 다른 이미지를 선택해 주세요.');
+   let message='영수증 이미지를 교체했습니다.';
+   if(source.blob){
+    if(hash===source.digest)message='기존 이미지와 같은 파일입니다.';
+    else{
+     previewFile={...source,name:replacement.name,mimeType:mimeForReceipt(replacement),digest:hash,blob:replacement,order:attachmentOrder(source)};
+     localFiles=localFiles.map(f=>f.id===source.id?previewFile:f);
+    }
+   }else{
+    const result=await drive.replace(source,replacement,hash);
+    applySnapshot(result);previewFile=result.file;
+    if(result.unchanged)message='기존 이미지와 같은 파일입니다.';
+    if(result.superseded)message='다른 창에서 저장한 최신 이미지가 적용되었습니다.';
+   }
+   notice=message;
+   $('#receipt-preview').close();toast(notice);redraw();
+  }catch(error){errorMessage=error.message||'교체하지 못했습니다. 다시 시도해 주세요.';}
+  finally{
+   busy=false;
+   if(!signal.aborted){
+    $('#receipt-preview [data-close]').disabled=false;
+    if($('#receipt-preview').open){
+     renderPreview(errorMessage);
+     $('#receipt-preview-actions button.primary-btn:enabled')?.focus({preventScroll:true});
+    }
+   }
+  }
  }
  async function preview(file){
   if(busy||!file)return;busy=true;
   try{
    const blob=await readFile(file);signal.throwIfAborted();releasePreview();previewUrl=URL.createObjectURL(blob);
-   $('#receipt-preview-name').textContent=file.name;
-   const container=$('#receipt-preview-body');container.replaceChildren();
-   if(file.mimeType.startsWith('image/')){const img=document.createElement('img');img.src=previewUrl;img.alt=file.name;container.append(img);}
-   const link=document.createElement('a');link.href=previewUrl;link.download=file.name;link.className='secondary-btn';link.textContent='원본 저장';container.append(link);
+   previewFile=file;renderPreview();
    showDialog('receipt-preview');
   }catch(error){if(!signal.aborted)toast(error.message);}
   finally{busy=false;redraw();}
  }
  root.addEventListener('change',event=>{
   const el=event.target;if(busy)return;
+  if(el.name==='receiptReplacement'){void chooseReplacement(el.files[0]);return;}
   if(el.hasAttribute('data-receipt-client'))clientId=el.value.trim();
   if(el.hasAttribute('data-receipt-target')){
    target=el.value;
@@ -224,11 +321,19 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
   }
   if(btn.hasAttribute('data-receipt-view')){void preview(known().find(f=>f.id===btn.dataset.receiptView));return;}
   const action=btn.dataset.receiptAction;
+  if(action==='cancel-replace'){clearReplacement();renderPreview();$('[name="receiptReplacement"]')?.focus({preventScroll:true});return;}
+  if(action==='save-replace'){void saveReplacement();return;}
   if(action==='attach'){attach(null);return;}
-  if(action==='disconnect'){drive.lock();files=[];localFiles=[];loaded=false;accountId='';notice='';redraw();return;}
+  if(action==='disconnect'){drive.lock();files=[];localFiles=[];loaded=false;pendingTrash=0;accountId='';notice='';redraw();return;}
   if(action)void run(action);
  },{signal});
- $('#receipt-preview').addEventListener('close',()=>{$('#receipt-preview-body').replaceChildren();releasePreview();},{signal});
+ $('#receipt-preview').addEventListener('close',()=>{
+  const id=previewFile?.id;
+  clearReplacement();releasePreview();previewFile=null;
+  $('#receipt-preview-body').replaceChildren();$('#receipt-preview-actions').replaceChildren();
+  const trigger=[...root.querySelectorAll('[data-receipt-view]')].find(el=>el.dataset.receiptView===id);
+  trigger?.focus({preventScroll:true});
+ },{signal});
  $('#receipt-dialog').addEventListener('close',()=>{
   queue=[];target='';
   if(missingReturnIndex>=0){
@@ -237,11 +342,11 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
    next?.focus({preventScroll:true});missingReturnIndex=-1;
   }
  },{signal});
- for(const id of ['receipt-progress','receipt-dialog'])$('#'+id).addEventListener('cancel',event=>{if(busy)event.preventDefault();},{signal});
+ for(const id of ['receipt-progress','receipt-dialog','receipt-preview'])$('#'+id).addEventListener('cancel',event=>{if(busy)event.preventDefault();},{signal});
  function prepareConnection(){
   if(window.google?.accounts?.oauth2||googleLoading)return;
   googleLoading=true;loadGoogleIdentity().catch(()=>{}).finally(()=>{googleLoading=false;});
  }
  root.addEventListener('focusin',event=>{if(event.target.closest('[data-receipt-action="connect"],[data-receipt-client]'))prepareConnection();},{signal});
- return {pageHtml,attach,busy:()=>busy,prepareConnection,destroy(){releasePreview();files=[];localFiles=[];queue=[];drive.lock();}};
+ return {pageHtml,attach,busy:()=>busy,prepareConnection,destroy(){releasePreview();clearReplacement();previewFile=null;files=[];localFiles=[];queue=[];drive.lock();}};
 }
