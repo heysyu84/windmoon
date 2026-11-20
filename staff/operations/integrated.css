@@ -255,6 +255,28 @@ td{font-size:14px;color:#748568;padding:16px 19px}
 .operations-root .operations-main:focus,dialog:focus{outline:none}
 dialog{overscroll-behavior:contain;max-height:calc(100dvh - 32px)}
 
+#initial-payment-fields .field-row>.field:only-child{grid-column:1/-1}
+@media(max-width:640px){
+ #editor .dialog-heading{padding:10px 16px}
+ #editor .dialog-heading .eyebrow{display:none}
+ #editor .dialog-heading .icon-btn{width:44px;height:44px}
+ #editor .dialog-body{padding:14px 16px 8px}
+ #editor .dialog-footer{padding:10px 16px max(10px,env(safe-area-inset-bottom))}
+ #editor .dialog-footer button{min-height:44px}
+ #editor .type-selector{margin-bottom:12px}
+ #editor .type-selector button{min-height:44px}
+ #editor .field{gap:5px;margin-bottom:12px}
+ #editor .field-divider{margin:12px 0}
+ #editor .field-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+ #editor .field-row>*{min-inline-size:0}
+ /* Keep the native iOS date editor inside its column even at a larger text size. */
+ #editor .transaction-date-input{display:block;inline-size:100%;min-inline-size:0;max-inline-size:100%;overflow:hidden;border:1px solid #dfe6d7;border-radius:7px;background:#fff}
+ #editor .transaction-date-input:focus-within{outline:2px solid #5f806a;outline-offset:1px}
+ #editor .transaction-date-input input[type=date]{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:44px;margin:0;padding:7px 8px;border:0;border-radius:0;text-align:start}
+ #editor .transaction-date-input input::-webkit-date-and-time-value{margin:0;min-width:0;text-align:start}
+ #editor .transaction-date-input input::-webkit-datetime-edit{min-width:0;padding:0}
+}
+
 .expense-reimbursement{display:flex;align-items:center;gap:9px;margin-top:16px;font-weight:600}.expense-reimbursement input{width:18px;height:18px;accent-color:#355e48}.reimbursement-help{display:block;margin:7px 0 16px;color:#6a7f71;line-height:1.6}.paid-on-behalf-badge{display:inline-block;margin-left:7px;padding:2px 6px;border-radius:4px;background:#f1eadc;color:#8b6c3d;font-size:11px;font-weight:500;white-space:nowrap}
 
 .expense-method-field>.field{margin-bottom:0}.expense-method-field .expense-reimbursement{margin-top:12px}.expense-method-field .reimbursement-help{font-size:12px;margin-bottom:0}
