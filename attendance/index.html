@@ -59,9 +59,12 @@
     .days-total{border-radius:10px;padding:8px 12px;background:#eff5ef;text-align:center;white-space:nowrap}
     .days-total b{font-size:20px;color:#23513a}
     .days-total span{font-size:12px;color:#647b6b}
+    .hours-total{display:block;margin-top:2px;color:#365844;font-size:12px;font-weight:650;white-space:normal;font-variant-numeric:tabular-nums}
     .dates{display:flex;flex-wrap:wrap;gap:7px;margin-top:17px}
     .date{font-size:12px;padding:7px 9px;background:#f5f8f5;border:1px solid #e2e9e2;color:#3f604b;border-radius:8px;white-space:nowrap}
     .date.weekend{background:#f9f3f0;border-color:#f1e3db;color:#986c54}
+    .date.with-time{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:4px;max-width:100%;white-space:normal}
+    .date .worked-time{font-weight:650;font-variant-numeric:tabular-nums}
     .state{grid-column:1/-1;text-align:center;border:1px dashed #d6e2d9;border-radius:15px;background:#fff;padding:50px 18px;color:#6f8275;font-size:14px;line-height:1.7}
     .state.error{color:#a24b49;border-color:#f0c9c8;background:#fffaf9}
     footer{margin-top:35px;border-top:1px solid #dae2db;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;color:#859188;font-size:12px}
@@ -79,7 +82,7 @@
     <main>
       <section class="intro">
         <h1 class="wm-screen-title" id="heading">근무일 조회</h1>
-        <p class="lead" id="description">기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.</p>
+        <p class="lead" id="description">근무일과 영업팀 시급 근무시간을 확인하세요. 실제 근무와 다르면 관리자에게 알려주세요.</p>
       </section>
       <section class="filter-panel" aria-label="Period">
         <div class="period">
@@ -113,15 +116,16 @@
     (() => {
       'use strict';
       const words = {
-        ko:{heading:'근무일 조회',description:'기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.',from:'시작일',to:'종료일',lookup:'조회',hint:'영업일 기준이며, 최대 93일까지 조회할 수 있습니다.',result:'직원별 근무 내역',search:'이름 검색',all:'전체',ops:'운영팀',sales:'영업팀',print:'인쇄 / PDF',footnote:'근무일 조회 전용 · 수정 불가',loading:'근무기록을 불러오는 중입니다.',empty:'해당 기간에 기록된 근무일이 없습니다.',error:'근무기록을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.',range:'조회 기간을 확인해 주세요. 한 번에 최대 93일까지 선택할 수 있습니다.',people:'명',days:'일',records:'근무일',none:'검색 결과가 없습니다.'},
-        ja:{heading:'勤務日照会',description:'登録された勤務日をご確認ください。実際の勤務と異なる場合は管理者にお知らせください。',from:'開始日',to:'終了日',lookup:'照会',hint:'営業日を基準に表示します。最大93日間まで照会できます。',result:'スタッフ別勤務日',search:'名前を検索',all:'すべて',ops:'運営チーム',sales:'営業チーム',print:'印刷 / PDF',footnote:'勤務日照会専用 · 編集不可',loading:'勤務記録を読み込んでいます。',empty:'この期間の勤務記録はありません。',error:'勤務記録を取得できませんでした。後ほどお試しください。',range:'日付を確認してください。最大93日間まで選択できます。',people:'名',days:'日',records:'勤務日',none:'該当するスタッフがいません。'},
-        en:{heading:'Workday records',description:'Review your recorded workdays. If any date is missing or incorrect, please contact the manager.',from:'From',to:'To',lookup:'View',hint:'Dates follow the business day. Select up to 93 days.',result:'Workdays by staff',search:'Search by name',all:'All',ops:'Operations',sales:'Sales',print:'Print / PDF',footnote:'Read only · No editing',loading:'Loading workday records…',empty:'No workdays recorded for this period.',error:'Could not load workday records. Please try again.',range:'Check the date range. You can select up to 93 days.',people:'staff',days:'days',records:'workdays',none:'No matching staff.'}
+        ko:{hourUnit:'시간',minuteUnit:'분',totalTime:'총',hourlyTotal:'시급 근무 합계',recordedTime:'기록된 시간',missingTime:'시간 미기록',partialTime:'일부 미기록',heading:'근무일 조회',description:'근무일과 영업팀 시급 근무시간을 확인하세요. 실제 근무와 다르면 관리자에게 알려주세요.',from:'시작일',to:'종료일',lookup:'조회',hint:'영업일 기준이며, 최대 93일까지 조회할 수 있습니다.',result:'직원별 근무 내역',search:'이름 검색',all:'전체',ops:'운영팀',sales:'영업팀',print:'인쇄 / PDF',footnote:'근무일 조회 전용 · 수정 불가',loading:'근무기록을 불러오는 중입니다.',empty:'해당 기간에 기록된 근무일이 없습니다.',error:'근무기록을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.',range:'조회 기간을 확인해 주세요. 한 번에 최대 93일까지 선택할 수 있습니다.',people:'명',days:'일',records:'근무일',none:'검색 결과가 없습니다.'},
+        ja:{hourUnit:'時間',minuteUnit:'分',totalTime:'合計',hourlyTotal:'時給勤務の合計',recordedTime:'記録分',missingTime:'時間未記録',partialTime:'一部未記録',heading:'勤務日照会',description:'勤務日と営業チームの時給勤務時間をご確認ください。実際の勤務と異なる場合は管理者にお知らせください。',from:'開始日',to:'終了日',lookup:'照会',hint:'営業日を基準に表示します。最大93日間まで照会できます。',result:'スタッフ別勤務日',search:'名前を検索',all:'すべて',ops:'運営チーム',sales:'営業チーム',print:'印刷 / PDF',footnote:'勤務日照会専用 · 編集不可',loading:'勤務記録を読み込んでいます。',empty:'この期間の勤務記録はありません。',error:'勤務記録を取得できませんでした。後ほどお試しください。',range:'日付を確認してください。最大93日間まで選択できます。',people:'名',days:'日',records:'勤務日',none:'該当するスタッフがいません。'},
+        en:{hourUnit:'h',minuteUnit:'m',totalTime:'Total',hourlyTotal:'Hourly total',recordedTime:'Recorded',missingTime:'Time not recorded',partialTime:'partly recorded',heading:'Workday records',description:'Review your workdays and any hourly Sales shifts. Contact the manager if a date or duration is incorrect.',from:'From',to:'To',lookup:'View',hint:'Dates follow the business day. Select up to 93 days.',result:'Workdays by staff',search:'Search by name',all:'All',ops:'Operations',sales:'Sales',print:'Print / PDF',footnote:'Read only · No editing',loading:'Loading workday records…',empty:'No workdays recorded for this period.',error:'Could not load workday records. Please try again.',range:'Check the date range. You can select up to 93 days.',people:'staff',days:'days',records:'workdays',none:'No matching staff.'}
       };
       const el = id => document.getElementById(id);
       const browserLanguage = (navigator.languages || [navigator.language || 'ko']).map(v => v.toLowerCase()).find(v => /^(ko|ja|en)(-|$)/.test(v)) || 'ko';
       let lang = (function(){try{return localStorage.getItem('windmoon-attendance-lang')}catch{return null}})() || browserLanguage.slice(0,2);
       if (!words[lang]) lang = 'ko';
       let employees = [];
+      let loadVersion = 0;
       let team = 'ALL';
       let loading = false;
       let error = '';
@@ -159,10 +163,22 @@
         const weekday=new Intl.DateTimeFormat(lang,{weekday:'short',timeZone:'UTC'}).format(date);
         return value.slice(5).replace('-','.')+' '+weekday;
       }
+      function formatDuration(minutes){
+        const hours=Math.floor(minutes/60), rest=minutes%60;
+        const parts=[];
+        if(hours)parts.push(hours+t('hourUnit'));
+        if(rest||!hours)parts.push(rest+t('minuteUnit'));
+        return parts.join(' ');
+      }
       function render(){
-        const filtered = employees.filter(e=>(team==='ALL'||e.department===team)&&e.name.toLocaleLowerCase().includes(el('search').value.trim().toLocaleLowerCase()));
+        const query=el('search').value.trim().toLocaleLowerCase();
+        const filtered=employees.flatMap(person=>{
+          if(!person.name.toLocaleLowerCase().includes(query))return [];
+          const dates=team==='ALL'?person.dates:person.datesByTeam?.[team]||(team===person.department?person.dates:[]);
+          return dates.length?[{...person,dates}]:[];
+        });
         const totalDays=filtered.reduce((n,e)=>n+e.dates.length,0);
-        el('summary').textContent=filtered.length+' '+t('people')+' · '+totalDays+' '+t('records');
+        el('summary').textContent=loading||error?'':filtered.length+' '+t('people')+' · '+totalDays+' '+t('records');
         const root=el('cards');
         root.replaceChildren();
         if(loading||error||filtered.length===0){
@@ -174,25 +190,50 @@
           const top=make('div','card-top');
           const personWrap=make('div');
           personWrap.appendChild(make('div','person',person.name));
-          personWrap.appendChild(make('div','team',t(person.department==='OPS'?'ops':'sales')));
+          const labelTeam=team==='ALL'?person.department:team;
+          const teamLabel=team==='ALL'&&person.datesByTeam?t('ops')+' · '+t('sales'):t(labelTeam==='OPS'?'ops':'sales');
+          personWrap.appendChild(make('div','team',teamLabel));
           const count=make('div','days-total');
           count.appendChild(make('b','',String(person.dates.length)));
-          count.appendChild(make('span','', ' '+t('days')));
+          const dayUnit=lang==='en'&&person.dates.length===1?'day':t('days');
+          count.appendChild(make('span','',(lang==='en'?' ':'')+dayUnit));
           top.append(personWrap,count);
           card.appendChild(top);
           const chips=make('div','dates');
+          let totalMinutes=0, hourlyDays=0, incomplete=false;
           person.dates.forEach(date=>{
             const dow = new Date(date+'T12:00:00Z').getUTCDay();
-            chips.appendChild(make('span','date'+((dow===0||dow===6)?' weekend':''),formatDay(date)));
+            const chip=make('span','date'+((dow===0||dow===6)?' weekend':''));
+            const day=make('time','',formatDay(date));
+            day.dateTime=date;
+            chip.appendChild(day);
+            const work=team!=='OPS'&&person.hourlyWork?.[date];
+            if(work&&Number.isSafeInteger(work.minutes)&&work.minutes>=0){
+              hourlyDays++;
+              totalMinutes+=work.minutes;
+              incomplete ||= !!work.incomplete;
+              const duration=work.incomplete
+                ? (work.minutes?formatDuration(work.minutes)+' · '+t('partialTime'):t('missingTime'))
+                : formatDuration(work.minutes);
+              chip.classList.add('with-time');
+              chip.append(' · ',make('strong','worked-time',duration));
+            }
+            chips.appendChild(chip);
           });
+          if(hourlyDays){
+            const label=incomplete?t('recordedTime'):hourlyDays===person.dates.length?t('totalTime'):t('hourlyTotal');
+            const summary=incomplete&&totalMinutes===0?t('missingTime'):label+' '+formatDuration(totalMinutes);
+            count.appendChild(make('small','hours-total',summary));
+          }
           card.appendChild(chips);
           root.appendChild(card);
         });
       }
       async function load(){
+        const version=++loadVersion;
         const from=el('from').value, to=el('to').value;
         const diff=(Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z'))/86400000;
-        if(!from||!to||!Number.isFinite(diff)||diff<0||diff>=93){error=t('range');employees=[];render();return;}
+        if(!from||!to||!Number.isFinite(diff)||diff<0||diff>=93){loading=false;error=t('range');employees=[];render();return;}
         loading=true;error='';render();
         const url=new URL(location.href);
         url.searchParams.set('from',from);url.searchParams.set('to',to);
@@ -205,12 +246,13 @@
           const response=await fetch(endpoint.href,{method:'GET',cache:'no-store',credentials:'omit'});
           if(!response.ok)throw new Error('HTTP '+response.status);
           const payload=await response.json();
+          if(version!==loadVersion)return;
           if(!Array.isArray(payload.employees))throw new Error('Invalid response');
-          employees=payload.employees.filter(e=>typeof e.name==='string'&&['OPS','SALES'].includes(e.department)&&Array.isArray(e.dates))
-            .map(e=>({name:e.name,department:e.department,dates:e.dates.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d))}));
+          employees=payload.employees.filter(e=>typeof e?.name==='string'&&['OPS','SALES'].includes(e.department)&&Array.isArray(e.dates))
+            .map(e=>({name:e.name,department:e.department,dates:e.dates.filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)),datesByTeam:e.datesByTeam,hourlyWork:e.hourlyWork}));
         }catch(e){
-          error=e?.message||'Error';employees=[];
-        }finally{loading=false;render();}
+          if(version===loadVersion){error=e?.message||'Error';employees=[];}
+        }finally{if(version===loadVersion){loading=false;render();}}
       }
       function moveMonth(delta){
         const from=el('from').value;
