@@ -1,11 +1,11 @@
 import {pickRangeDay} from '../date-range.mjs';
 import {receiptPaidAmount,reimbursementAmount,EXPENSE_PAYMENT_METHODS,expensePaymentMethod,isPaidOnBehalf,matchesExpenseFilters,ACCOUNTS,accountDefinitions,selectableAccounts,paymentMethodDefinitions,selectablePaymentMethods,paymentMethodLabel,personalCardSummary,allocatePersonalReimbursement,SALE_CHANNELS,saleChannel,CATEGORIES,expenseCategoryOptions,TYPE_NAMES,localDate,shiftDate,monthRange,inRange,validateEntry,addPayment,paidAmount,outstanding,paymentStatus,makeEmpty,validateWorkspace,saveDayClosing,dayClosed,saleMethodName,savedVendors} from './core.js?v=20261119-private-receipts';
-import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,expensePreview,renderPersonalCardDashboard,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261121-workspace';
-import {buildReport,assertReportReady,reportSheets,closingLabel} from './report-data.js?v=20261121-workspace';
-import {renderReport,reportBreakdown,reportExpenses} from './report-view.js?v=20261121-workspace';
-import {markedDates,datePickerHtml} from './calendar.js?v=20261121-workspace';
+import {NAV,escape as esc,money,icon,shortDate,accountName,statusPill,renderOverview,renderLedger,expensePreview,renderPersonalCardDashboard,renderPayroll,renderFunds,renderClosing} from './views.js?v=20261121-interface';
+import {buildReport,assertReportReady,reportSheets,closingLabel} from './report-data.js?v=20261121-interface';
+import {renderReport,reportBreakdown,reportExpenses} from './report-view.js?v=20261121-interface';
+import {markedDates,datePickerHtml} from './calendar.js?v=20261121-interface';
 import {fetchPayrollSnapshot} from './payroll-cache.js?v=20261104-d1';
-import {createReceiptPanel,receiptFileInput} from './receipts.js?v=20261121-workspace';
+import {createReceiptPanel,receiptFileInput} from './receipts.js?v=20261121-interface';
 import {startWorkspaceSync} from '../workspace-sync.mjs';
 // Memory-only cache: survives navigating between workspace panels, never
 // persists payroll or bank data in localStorage/sessionStorage.
@@ -17,13 +17,14 @@ const $=s=>root.querySelector(s),today=localDate();
 let state=makeEmpty(today),serverState=makeEmpty(today),revision=0,serverReady=false,saving=false,loading=false,pendingSave=null,payrollData=sharedPayrollCache;
 let reportSnapshot=null,reportExporting=false,expenseExporting=false;
 const operatingDay=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()))<12?shiftDate(today,-1):today;
-const ui={page:NAV.some(n=>n.id===workspaceOptions.page)?workspaceOptions.page:'overview',period:'month',day:operatingDay,month:operatingDay.slice(0,7),start:shiftDate(today,-6),end:today,fundsView:'cash',expenseView:'ledger',expenseSelection:null,filters:{search:'',status:'',method:''}};
+const ui={page:NAV.some(n=>n.id===workspaceOptions.page)?workspaceOptions.page:'overview',period:'month',day:operatingDay,month:operatingDay.slice(0,7),start:shiftDate(today,-6),end:today,fundsView:'cash',expenseView:'ledger',expenseSelection:null,expenseFiltersOpen:false,filters:{search:'',status:'',method:''}};
 let editorEntry=null,editorId,editorPaymentId,editorType='sale',toastTimer,confirmCallback;
 let calendarField=null,calendarMonth=ui.month,closingDirty=false;
 let rangeSelection={start:ui.start,end:ui.end,pickingEnd:false};
 const uid=()=>crypto.randomUUID();
 const options=(values,selected)=>values.map(([v,l])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(l)}</option>`).join('');
-function getRange(){return ui.period==='day'?{start:ui.day,end:ui.day}:ui.period==='month'?monthRange(ui.month):{start:ui.start,end:ui.end};}
+function periodMode(){return ui.page==='closing'?'day':ui.period;}
+function getRange(){const mode=periodMode();return mode==='day'?{start:ui.day,end:ui.day}:mode==='month'?monthRange(ui.month):{start:ui.start,end:ui.end};}
 function toast(text){if(disposed)return;$('#toast').textContent=text;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),3200);}
 const receipts=createReceiptPanel(root,{
  entries:()=>state.entries, range:getRange, showDialog, toast, signal:controller.signal,
@@ -39,7 +40,7 @@ async function jsonFetch(path,init={}) {
 }
 
 function attachPayroll(value){return {...value,payroll:payrollData?.payroll||[],integration:payrollData?{demo:false,stale:!!payrollData.stale,fetchedAt:payrollData.fetchedAt,sourceUpdatedAt:payrollData.sourceUpdatedAt,revision:payrollData.revision}:{demo:false,error:true}};}
-function updateConnectionBanner(){if(disposed)return;$('#refresh-server').textContent=loading?'연결 중…':'서버 새로고침 ↻';$('#save-status').textContent=serverReady?'서버 연결됨 · 장부 버전 '+revision:'서버 연결 확인 중';}
+function updateConnectionBanner(){if(disposed)return;$('#refresh-server').textContent=loading?'연결 중…':'서버 새로고침';$('#save-status').textContent=serverReady?'서버 연결됨 · 장부 버전 '+revision:'서버 연결 확인 중';}
 async function fetchCurrentPayroll(){
  const result=await fetchPayrollSnapshot(jsonFetch,sharedPayrollCache);
  sharedPayrollCache=result;
@@ -104,17 +105,22 @@ async function persist(next,label='장부 저장'){
  }catch(error){toast(error.message);return false;}finally{saving=false;root.querySelectorAll('button[type="submit"]').forEach(b=>b.disabled=false);updateConnectionBanner();}
 }
 function renderPeriod(){if(disposed)return;
- root.querySelectorAll('[data-period]').forEach(b=>b.classList.toggle('active',b.dataset.period===ui.period));
+ const mode=periodMode();
+ root.querySelectorAll('[data-period]').forEach(button=>{
+  const selected=button.dataset.period===mode;
+  button.classList.toggle('active',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ });
  const input=$('#period-inputs');
- input.classList.toggle('custom',ui.period==='custom');
+ input.classList.toggle('custom',mode==='custom');
  const counts=markedDates(state);
  const picker=(field,value)=>datePickerHtml({field,value,opened:calendarField===field,viewMonth:calendarMonth,counts,today,range:ui,selection:rangeSelection});
- input.innerHTML=ui.period==='custom'
+ input.innerHTML=mode==='custom'
   ?picker('range',ui.start)
-  :'<button class="date-step" data-shift="-1" aria-label="이전 '+(ui.period==='day'?'날':'달')+'">‹</button>'+
-   picker(ui.period==='day'?'day':'month',ui.period==='day'?ui.day:ui.month)+
-   '<button class="date-step" data-shift="1" aria-label="다음 '+(ui.period==='day'?'날':'달')+'">›</button>'+
-   '<button class="text-btn" data-action="period-today">'+(ui.period==='day'?'오늘':'이번 달')+'</button>';
+  :'<button class="date-step" data-shift="-1" aria-label="이전 '+(mode==='day'?'날':'달')+'">‹</button>'+
+   picker(mode==='day'?'day':'month',mode==='day'?ui.day:ui.month)+
+   '<button class="date-step" data-shift="1" aria-label="다음 '+(mode==='day'?'날':'달')+'">›</button>'+
+   '<button class="text-btn" data-action="period-today">'+(mode==='day'?'오늘':'이번 달')+'</button>';
 }
 function chooseCalendarDate(field,date){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
@@ -126,13 +132,17 @@ function chooseCalendarDate(field,date){
  renderPeriod();
  renderContent();
 }
-function renderContent(){if(disposed)return;closingDirty=false;const r=getRange();$('#period-note').textContent=ui.page==='receipts'?'구매일 기준':ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'장부와 급여를 불러오고 있습니다…':'서버에 연결하지 못했습니다. 상단의 서버 새로고침을 눌러 주세요.')+'</div>';return;}if(ui.page==='receipts'){$('#page-content').innerHTML=receipts.pageHtml();return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료를 불러오지 못해 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 조회해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">급여를 다시 불러오지 못해 마지막 조회 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{period:ui.period,dailyOpen:$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r,operatingDay):ui.page==='sales'?('<div class="funds-view-switch"><span>하루 매출 합계는 일마감에서 입력합니다.</span><button class="secondary-btn" type="button" data-action="today-closing">오늘 영업일 마감</button><button type="button" class="secondary-btn" data-sales-pdf="1">'+icon('arrowDown',14)+' 매출 PDF 내보내기</button></div><p class="form-error" role="alert" data-sales-pdf-error></p>'+renderLedger(state,r,ui.page,ui.filters)):ui.page==='expenses'?('<div class="funds-view-switch"><span>지출 메뉴</span><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">전체 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">대납 관리 · '+money(personalCardSummary(state).outstanding)+'원</button></div><button type="button" class="secondary-btn" data-expense-pdf="1">'+icon('arrowDown',14)+' 지출 PDF 내보내기</button></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters,ui.expenseSelection))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
+function renderContent(){if(disposed)return;closingDirty=false;const r=getRange();
+ const heading=$('.workspace-heading');
+ heading.querySelector('[data-receipt-action="attach"]').hidden=ui.page!=='receipts'||!serverReady;
+ heading.querySelector('[data-sales-pdf]').hidden=ui.page!=='sales'||!serverReady;
+ heading.querySelector('[data-expense-pdf]').hidden=ui.page!=='expenses'||!serverReady;
+ $('#period-note').textContent=ui.page==='receipts'?'구매일 기준':ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';if(!serverReady){$('#page-content').innerHTML='<div class="panel loading-state">'+(loading?'장부와 급여를 불러오고 있습니다…':'서버에 연결하지 못했습니다. <button type="button" class="text-btn" data-action="refresh-server">다시 연결</button>')+'</div>';return;}if(ui.page==='receipts'){$('#page-content').innerHTML=receipts.pageHtml();return;}$('#page-content').innerHTML=(state.integration?.error?'<div class="integration-warning">급여 자료를 불러오지 못해 현재 집계에 인건비가 반영되지 않았습니다. 서버 새로고침으로 다시 조회해 주세요.</div>':state.integration?.stale?'<div class="integration-warning">급여를 다시 불러오지 못해 마지막 조회 자료를 표시합니다.</div>':'')+(ui.page==='report'?renderReport(state,r,{period:ui.period,dailyOpen:$('#report-daily')?.open}):ui.page==='closing'?renderClosing(state,ui.day):ui.page==='overview'?renderOverview(state,r,operatingDay):ui.page==='sales'?('<div class="funds-view-switch"><span>하루 매출 합계는 일마감에서 입력합니다.</span><button class="secondary-btn" type="button" data-action="today-closing">오늘 영업일 마감</button></div><p class="form-error" role="alert" data-sales-pdf-error></p>'+renderLedger(state,r,ui.page,ui.filters)):ui.page==='expenses'?('<div class="funds-view-switch expense-views"><div class="funds-view-buttons" role="group" aria-label="지출 조회 종류"><button type="button" data-expense-view="ledger" aria-pressed="'+(ui.expenseView==='ledger')+'" class="'+(ui.expenseView==='ledger'?'active':'')+'">전체 지출</button><button type="button" data-expense-view="personal" aria-pressed="'+(ui.expenseView==='personal')+'" class="'+(ui.expenseView==='personal'?'active':'')+'">대납 관리 · '+money(personalCardSummary(state).outstanding)+'원</button></div></div>'+(ui.expenseView==='personal'?renderPersonalCardDashboard(state):renderLedger(state,r,ui.page,ui.filters,ui.expenseSelection,ui.expenseFiltersOpen))):ui.page==='payroll'?renderPayroll(state,r,ui.filters,ui.period):renderFunds(state,r,ui.fundsView));}
 function renderPage(){if(disposed)return;
  calendarField=null;
- if(ui.page==='closing')ui.period='day';
  if(ui.page==='receipts'&&window.WINDMOON_CONFIG?.receiptGoogleClientId)receipts.prepareConnection();
- const n=NAV.find(n=>n.id===ui.page);$('#page-title').textContent=n.name;$('#eyebrow').textContent=n.eyebrow;$('#page-description').textContent=n.description;$('#period-note').textContent=ui.page==='receipts'?'구매일 기준':ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';
- const button=$('#new-entry');button.classList.toggle('hidden',['closing','payroll','receipts'].includes(ui.page));button.innerHTML=icon(ui.page==='report'?'arrowDown':'plus',15)+(ui.page==='report'?'내보내기':ui.page==='expenses'?'지출 등록':ui.page==='sales'?'매출 등록':'거래 등록');
+ const n=NAV.find(n=>n.id===ui.page);$('#page-title').textContent=n.name;$('#page-tools').open=false;$('#period-note').textContent=ui.page==='receipts'?'구매일 기준':ui.page==='funds'?(ui.fundsView==='accrual'?'영업일 기준':'실제 입출금일 기준'):'영업일 기준';
+ const button=$('#new-entry');button.hidden=['closing','payroll','receipts'].includes(ui.page);button.innerHTML=icon(ui.page==='report'?'arrowDown':'plus',15)+(ui.page==='report'?'내보내기':ui.page==='expenses'?'지출 등록':ui.page==='sales'?'매출 등록':'거래 등록');
  renderPeriod();root.querySelectorAll('[data-period]').forEach(b=>b.classList.toggle('hidden',ui.page==='closing'&&b.dataset.period!=='day'));renderContent();
 }
 function navigate(page){ui.page=page;ui.filters={search:'',status:'',method:''};workspaceOptions.onNavigate?.(page);renderPage();window.scrollTo({top:0,behavior:'instant'});}
@@ -276,7 +286,7 @@ function transactionDateInput(name,value,required=false){
 function draftFromForm(){const f=$('#entry-form');return {title:f.elements.title?.value||'',amount:f.elements.amount?.value||'',personalPoints:f.elements.personalPoints?.value||'',personalVoucherAmount:f.elements.personalVoucherAmount?.value||'',businessDate:f.elements.businessDate?.value||today,category:readCategory(f),method:f.elements.method?.value||'bank',paidOnBehalf:!!f.elements.paidOnBehalf?.checked,partner:f.elements.partner?.value||'',note:f.elements.note?.value||''};}
 function openEditor(type='sale',entry=null,draft=null,requestedDate=null){
  if(entry?.closingDate){ui.day=entry.businessDate;navigate('closing');toast('일마감 매출은 일마감 화면에서 수정해 주세요.');return;}
- const r=getRange(),defaultDate=requestedDate||(ui.period==='day'?ui.day:operatingDay>=r.start&&operatingDay<=r.end?operatingDay:r.end);
+ const r=getRange(),defaultDate=requestedDate||(periodMode()==='day'?ui.day:operatingDay>=r.start&&operatingDay<=r.end?operatingDay:r.end);
  if((entry||type!=='expense')&&dayClosed(state,entry?.businessDate||draft?.businessDate||defaultDate)){toast('마감된 영업일입니다. 일마감에서 다시 열어 주세요.');return;}
  if(!draft){editorId=entry?.id||uid();editorPaymentId=uid();}
  editorEntry=entry;editorType=type;
@@ -346,15 +356,15 @@ async function submitEntry(event){
 function paymentRows(entry,readonly=false){return entry.payments.length?entry.payments.map(p=>`<div class="payment-row"><span>${shortDate(p.date)} · ${accountName(p.accountId,state)}${p.kind==='advance'?' · 선지급':''}${p.fee?`<br><small>수수료 ${money(p.fee)}원 차감 · 실입금 ${money(p.amount-p.fee)}원</small>`:''}</span><span><strong>${money(p.amount)}원</strong>${readonly?'':` <button class="icon-btn" style="display:inline-grid;width:23px;height:23px;font-size:15px;vertical-align:middle" data-delete-payment="${esc(p.id)}" data-entry-id="${esc(entry.id)}" aria-label="${shortDate(p.date)} 입출금 기록 삭제">×</button>`}</span></div>`).join(''):'<div class="inline-note">기록된 실제 입출금이 없습니다.</div>';}
 function openEntryDetail(id){
  const e=state.entries.find(e=>e.id===id);if(!e)return;
- $('#detail-title').textContent=e.title;$('#detail-eyebrow').textContent='TRANSACTION DETAIL';
+ $('#detail-title').textContent=e.title;
  const transfer=e.type==='transfer',owed=outstanding(e),isIncoming=e.type==='sale'||e.type==='funding';
  $('#detail-body').innerHTML=`<div style="display:flex;gap:8px;align-items:center"><span class="type-pill">${TYPE_NAMES[e.type]}</span>${statusPill(e)}</div><div class="detail-amount">${money(e.amount)}<small>원</small></div><dl class="detail-meta"><dt>영업일</dt><dd>${shortDate(e.businessDate)}</dd><dt>분류</dt><dd>${esc(e.category)}</dd><dt>거래처 · 대상</dt><dd>${esc(e.partner||'—')}</dd>${transfer?`<dt>자금 이동</dt><dd>${accountName(e.fromAccount,state)} → ${accountName(e.toAccount,state)}</dd><dt>실제 이동일</dt><dd>${shortDate(e.paymentDate)}</dd>`:`<dt>결제수단</dt><dd>${esc(e.type==='sale'?saleMethodName(e):paymentMethodLabel(e,state))}</dd>${e.type==='expense'?`<dt>대납 여부</dt><dd>${isPaidOnBehalf(e)?'대납':'일반 지출'}</dd>${isPaidOnBehalf(e)?`<dt>영수증 실결제액</dt><dd>${money(receiptPaidAmount(e))}원</dd><dt>개인 포인트</dt><dd>${money(e.personalPoints||0)}P</dd>${e.personalVoucherAmount?`<dt>유상 상품권</dt><dd>${money(e.personalVoucherAmount)}원</dd>`:''}`:''}`:''}<dt>${isIncoming?'입금 기록액':'지급 기록액'}</dt><dd>${money(paidAmount(e))}원</dd><dt>${isIncoming?'받을 금액':'지급할 금액'}</dt><dd><strong>${money(owed)}원</strong></dd>`}<dt>비고</dt><dd style="white-space:pre-wrap">${esc(e.note||'—')}</dd></dl>${transfer?'<div class="inline-note">계좌 간 이동으로 매출·비용에는 반영하지 않습니다.</div>':`<h3 class="detail-section-title">입출금 기록</h3>${paymentRows(e)}${owed>0?`<form id="settlement-form" class="payment-form" data-entry-id="${esc(e.id)}" novalidate><h3>${isPaidOnBehalf(e)?'대납금 정산 처리':isIncoming?'입금·정산':'지급'} 기록 추가</h3><div class="field-row"><label class="field"><span>금액 · 원</span><input name="amount" type="number" min="1" max="${owed}" step="1" inputmode="numeric" value="${owed}"></label><label class="field"><span>실제 입출금일</span><input name="date" type="date" value="${today}"></label></div><div class="field-row"><label class="field"><span>입출금 위치</span><select name="accountId">${accountSelectOptions(e.method==='cash'?'cash':'bank')}</select></label>${e.type==='sale'?'<label class="field"><span>정산 수수료 · 원</span><input name="fee" type="number" min="0" step="1" inputmode="numeric" value="0"></label>':''}</div><div id="settlement-error" class="form-error" role="alert"></div><button class="primary-btn" type="submit">${isPaidOnBehalf(e)?'정산 처리':isIncoming?'입금':'지급'} 내역 기록</button></form>`:'<div class="soft-callout">거래금액 전체의 입출금이 기록되었습니다.</div>'}`}`;
  $('#detail-footer').innerHTML=`${e.type==='expense'?`<button class="secondary-btn" data-receipt-attach="${esc(e.id)}">내 영수증 첨부</button>`:''}<button class="danger-text" data-delete-entry="${esc(e.id)}">거래 삭제</button><button class="secondary-btn" data-close="detail">닫기</button><button class="primary-btn" data-edit-entry="${esc(e.id)}">수정하기</button>`;showDialog('detail');
 }
-function openPayrollDetail(id){const e=state.payroll.find(e=>e.id===id);if(!e)return;$('#detail-title').textContent=e.employee+' · 급여';$('#detail-eyebrow').textContent='PAYROLL PREVIEW';$('#detail-body').innerHTML=`${statusPill(e)}<div class="detail-amount">${money(e.amount)}<small>원</small></div><dl class="detail-meta"><dt>영업일</dt><dd>${shortDate(e.businessDate)}</dd><dt>소속</dt><dd>${esc(e.team)} · ${esc(e.role)}</dd><dt>지급액</dt><dd>${money(paidAmount(e))}원</dd><dt>남은 급여</dt><dd>${money(outstanding(e))}원</dd></dl><h3 class="detail-section-title">지급 내역 · 선지급 포함</h3>${paymentRows(e,true)}<div class="soft-callout">공제 후 지급대상액을 기준으로 합니다. 선지급과 잔금은 동일 급여의 지급 내역으로 합산합니다. 선지급은 영업일 기준으로 반영합니다.</div>`;$('#detail-footer').innerHTML=`<button class="secondary-btn" data-close="detail">닫기</button>`;showDialog('detail');}
+function openPayrollDetail(id){const e=state.payroll.find(e=>e.id===id);if(!e)return;$('#detail-title').textContent=e.employee+' · 급여';$('#detail-body').innerHTML=`${statusPill(e)}<div class="detail-amount">${money(e.amount)}<small>원</small></div><dl class="detail-meta"><dt>영업일</dt><dd>${shortDate(e.businessDate)}</dd><dt>소속</dt><dd>${esc(e.team)} · ${esc(e.role)}</dd><dt>지급액</dt><dd>${money(paidAmount(e))}원</dd><dt>남은 급여</dt><dd>${money(outstanding(e))}원</dd></dl><h3 class="detail-section-title">지급 내역 · 선지급 포함</h3>${paymentRows(e,true)}<div class="soft-callout">공제 후 지급대상액을 기준으로 합니다. 선지급과 잔금은 동일 급여의 지급 내역으로 합산합니다. 선지급은 영업일 기준으로 반영합니다.</div>`;$('#detail-footer').innerHTML=`<button class="secondary-btn" data-close="detail">닫기</button>`;showDialog('detail');}
 function openPending(kind){
  const r=getRange(),pay=kind==='payroll',entries=(pay?state.payroll:state.entries).filter(e=>inRange(e.businessDate,r)&&outstanding(e)>0&&(pay||kind==='sales'&&e.type==='sale'||kind==='expenses'&&(e.type==='expense'||e.type==='refund')));
- $('#detail-title').textContent=kind==='sales'?'미수 매출':kind==='expenses'?'미지급 비용':'미지급 급여';$('#detail-eyebrow').textContent='OUTSTANDING BALANCE';$('#detail-body').innerHTML=entries.length?`<div class="pending-list">${entries.map(e=>`<button class="pending-item" ${pay?`data-payroll="${esc(e.id)}"`:`data-entry="${esc(e.id)}"`}><span>${esc(pay?e.employee:e.title)}<br><small>${shortDate(e.businessDate)} · ${esc(pay?e.team:e.partner)}</small></span><strong>${money(outstanding(e))}원</strong></button>`).join('')}</div>`:'<div class="empty-note">선택한 기간에 남은 금액이 없습니다.</div>';$('#detail-footer').innerHTML='<button class="primary-btn" data-close="detail">닫기</button>';showDialog('detail');
+ $('#detail-title').textContent=kind==='sales'?'미수 매출':kind==='expenses'?'미지급 비용':'미지급 급여';$('#detail-body').innerHTML=entries.length?`<div class="pending-list">${entries.map(e=>`<button class="pending-item" ${pay?`data-payroll="${esc(e.id)}"`:`data-entry="${esc(e.id)}"`}><span>${esc(pay?e.employee:e.title)}<br><small>${shortDate(e.businessDate)} · ${esc(pay?e.team:e.partner)}</small></span><strong>${money(outstanding(e))}원</strong></button>`).join('')}</div>`:'<div class="empty-note">선택한 기간에 남은 금액이 없습니다.</div>';$('#detail-footer').innerHTML='<button class="primary-btn" data-close="detail">닫기</button>';showDialog('detail');
 }
 function settingsAccountRow(account){
  return `<div class="field-row" data-account-row data-id="${esc(account.id)}"><label class="field"><span>입출금 위치명</span><input data-account-name maxlength="50" value="${esc(account.name)}" required></label><label class="field"><span>기초 잔액 · 원</span><input data-account-opening type="number" step="1" inputmode="numeric" value="${Number(state.openingBalances[account.id]||0)}"></label><label class="field"><span>상태</span><span class="checkbox-line"><input type="checkbox" data-account-active ${account.active!==false?'checked':''} ${['cash','bank'].includes(account.id)?'disabled':''}>사용</span></label><button class="secondary-btn" type="button" data-action="remove-account" data-id="${esc(account.id)}">삭제</button></div>`;
@@ -393,7 +403,21 @@ $('#settings-form').addEventListener('submit',async event=>{event.preventDefault
  }catch(error){$('#settings-error').textContent=error.message;}});
 listen('submit',async event=>{if(event.target.id!=='settlement-form')return;event.preventDefault();const f=event.target,e=state.entries.find(e=>e.id===f.dataset.entryId);try{const next=addPayment(e,{id:uid(),date:f.elements.date.value,amount:Number(f.elements.amount.value),accountId:f.elements.accountId.value,fee:Number(f.elements.fee?.value||0)},accountDefinitions(state));if(await persist({...state,entries:state.entries.map(x=>x.id===e.id?next:x)})){openEntryDetail(e.id);toast('실제 입출금 내역을 기록했습니다.');}}catch(error){$('#settlement-error').textContent=error.message;}});
 $('#new-entry').addEventListener('click',()=>{if(ui.page==='report')openReportExport();else if(ui.page!=='payroll'&&ui.page!=='closing')openEditor(ui.page==='expenses'?'expense':'sale');});
-$('#settings-button').innerHTML=icon('settings',17);$('#settings-button').addEventListener('click',openSettings);
+$('#settings-button').addEventListener('click',openSettings);
+// The account and page tools share native disclosures and keyboard dismissal.
+document.addEventListener('click',event=>{
+ for(const menu of root.querySelectorAll('.workspace-menu[open]')){
+  const path=event.composedPath();
+  if(!path.includes(menu)||path.some(node=>node instanceof HTMLButtonElement&&menu.contains(node))){
+   menu.open=false;
+   if(menu.contains(root.activeElement))menu.querySelector('summary').focus({preventScroll:true});
+  }
+ }
+},{signal:controller.signal});
+listen('keydown',event=>{
+ const menu=event.target.closest('.workspace-menu[open]');
+ if(menu&&event.key==='Escape'){event.preventDefault();menu.open=false;menu.querySelector('summary').focus({preventScroll:true});}
+});
 listen('click',async event=>{
  const button=event.target.closest('button,[data-entry],[data-payroll]');if(!button)return;
  if(button.dataset.close){if(button.dataset.close.startsWith('receipt-')&&receipts.busy())return;if(button.dataset.close==='report-export'&&reportExporting)return;$('#'+button.dataset.close).close();return;}
@@ -403,6 +427,12 @@ listen('click',async event=>{
  if(button.dataset.new){openEditor(button.dataset.new);return;}
  if(button.dataset.salesPdf){await exportSalesPdf();return;}
  if(button.dataset.expensePdf){await exportExpensePdf();return;}
+ if(button.hasAttribute('data-expense-filters')){
+  ui.expenseFiltersOpen=!ui.expenseFiltersOpen;
+  button.setAttribute('aria-expanded',String(ui.expenseFiltersOpen));
+  $('#expense-filters').classList.toggle('is-open',ui.expenseFiltersOpen);
+  return;
+ }
  if(button.dataset.expenseView){if(!['ledger','personal'].includes(button.dataset.expenseView))return;ui.expenseView=button.dataset.expenseView;renderContent();return;}
  if(button.dataset.settlePersonal){openEntryDetail(button.dataset.settlePersonal);return;}
  if(button.dataset.fundsView){if(!['cash','accrual'].includes(button.dataset.fundsView))return;ui.fundsView=button.dataset.fundsView;renderContent();return;}
@@ -432,8 +462,8 @@ listen('click',async event=>{
   root.querySelector('[data-calendar-toggle="range"]')?.focus({preventScroll:true});return;
  }
  if(button.dataset.calendarApplyMonth){chooseCalendarDate('month',calendarMonth+'-01');return;}
- if(button.dataset.period){calendarField=null;ui.period=button.dataset.period;renderPeriod();renderContent();return;}
- if(button.dataset.shift){calendarField=null;const step=Number(button.dataset.shift);if(ui.period==='day')ui.day=shiftDate(ui.day,step);else{const [year,month]=ui.month.split('-').map(Number);ui.month=new Date(Date.UTC(year,month-1+step,1)).toISOString().slice(0,7);}renderPeriod();renderContent();return;}
+ if(button.dataset.period){calendarField=null;if(ui.page!=='closing')ui.period=button.dataset.period;renderPeriod();renderContent();return;}
+ if(button.dataset.shift){calendarField=null;const step=Number(button.dataset.shift);if(periodMode()==='day')ui.day=shiftDate(ui.day,step);else{const [year,month]=ui.month.split('-').map(Number);ui.month=new Date(Date.UTC(year,month-1+step,1)).toISOString().slice(0,7);}renderPeriod();renderContent();return;}
  if(button.dataset.editorType){const type=button.dataset.editorType;if(type===editorType)return;const draft=draftFromForm();draft.category=['sale','expense'].includes(type)?'':CATEGORIES[type][0];openEditor(type,editorEntry,draft);return;}
  if(button.dataset.editEntry){const e=state.entries.find(e=>e.id===button.dataset.editEntry);$('#detail').close();openEditor(e.type,e);return;}
  if(button.dataset.deleteEntry){const id=button.dataset.deleteEntry;confirmAction('거래를 삭제할까요?','연결된 입출금 내역도 함께 삭제되며, 잔액과 집계가 다시 계산됩니다.',async ()=>{if(await persist({...state,entries:state.entries.filter(e=>e.id!==id)})){$('#detail').close();toast('거래를 삭제했습니다.');}});return;}
@@ -492,7 +522,12 @@ listen('click',async event=>{
  if(action==='draft-closing'){await submitClosing('draft');return;}
  if(action==='reopen-closing'){confirmAction('마감을 다시 열까요?','해당 영업일의 매출과 지출을 다시 수정할 수 있습니다.',async()=>{const closings={...state.closings,[ui.day]:{...state.closings[ui.day],status:'draft',reopenedAt:new Date().toISOString()}};if(await persist({...state,closings},ui.day+' 마감 다시 열기'))toast('마감을 다시 열었습니다.');},'다시 열기');return;}
 
- if(action?.startsWith('pending-'))openPending(action.slice(8));if(action==='period-today'){ui.day=operatingDay;ui.month=operatingDay.slice(0,7);renderPeriod();renderContent();}
+ if(action?.startsWith('pending-'))openPending(action.slice(8));if(action==='period-today'){
+  const fromCalendar=!!button.closest('.operations-calendar-popover');
+  if(periodMode()==='day')ui.day=operatingDay;else ui.month=operatingDay.slice(0,7);
+  calendarField=null;renderPeriod();renderContent();
+  if(fromCalendar)$('[data-calendar-toggle]')?.focus({preventScroll:true});
+ }
 });
 listen('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('tr[data-entry],tr[data-payroll]')){event.preventDefault();event.target.click();}});
 listen('change',event=>{
@@ -527,7 +562,7 @@ listen('change',event=>{
  }
  if(el.id==='ledger-reimbursement'){ui.filters.reimbursement=el.value;renderContent();}
  if(el.id==='ledger-status'||el.id==='ledger-method'){ui.filters[el.id==='ledger-status'?'status':'method']=el.value;renderContent();}
- if(el.id==='period-value'){if(!el.value)return;ui[ui.period==='day'?'day':'month']=el.value;calendarField=null;renderPeriod();renderContent();}
+ if(el.id==='period-value'){if(!el.value)return;ui[periodMode()==='day'?'day':'month']=el.value;calendarField=null;renderPeriod();renderContent();}
  if(el.id==='period-start'||el.id==='period-end'){
   rangeSelection[el.id==='period-start'?'start':'end']=el.value;
   rangeSelection.pickingEnd=false;

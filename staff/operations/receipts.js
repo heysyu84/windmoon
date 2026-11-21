@@ -1,5 +1,5 @@
 import {isPaidOnBehalf, receiptPaidAmount, inRange, paymentMethodLabel} from './core.js?v=20261119-private-receipts';
-import {escape as esc, icon, money, shortDate} from './views.js?v=20261121-workspace';
+import {escape as esc, icon, money, shortDate} from './views.js?v=20261121-interface';
 import {attachmentOrder,createReceiptDrive,clientIdForDevice,loadGoogleIdentity,mimeForReceipt,receiptDigest} from './receipt-drive.js?v=20261119-replace-photo';
 
 const imageTypes='image/jpeg,image/png,image/webp';
@@ -65,7 +65,12 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
   const missing=available().filter(e=>isPaidOnBehalf(e)&&inRange(e.businessDate,range())&&!attached.has(e.id))
    .sort((a,b)=>b.businessDate.localeCompare(a.businessDate));
   const totals=rows.reduce((sum,r)=>sum+r.total,0);
-  const list=rows.map(row=>'<article class="receipt-row"><div><time>'+esc(row.date)+'</time><strong>'+esc(row.title)+'</strong><span>'+esc(row.partner||row.method)+' · 실결제 '+money(row.receiptPaid)+'원'+(row.points?' + '+money(row.points)+'P':'')+(row.voucher?' + 상품권 '+money(row.voucher)+'원':'')+'</span></div><div><strong>'+money(row.total)+'원</strong>'+row.files.map(f=>'<button type="button" class="text-btn" data-receipt-view="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></article>').join('');
+  const list=rows.map(row=>{
+   const breakdown='실결제 '+money(row.receiptPaid)+'원'+(row.points?' + '+money(row.points)+'P':'')+(row.voucher?' + 상품권 '+money(row.voucher)+'원':'');
+   return '<article class="receipt-row"><div class="receipt-row-heading"><strong>'+esc(row.title)+'</strong><b>'+money(row.total)+'원</b></div>'+
+    '<p class="receipt-row-meta"><time datetime="'+esc(row.date)+'">'+esc(shortDate(row.date))+'</time> · '+esc(row.partner||row.method)+' · '+breakdown+'</p>'+
+    '<div class="receipt-files">'+row.files.map(f=>'<button type="button" class="text-btn" data-receipt-view="'+esc(f.id)+'">'+icon('receipt',14)+'<span>'+esc(f.name)+'</span></button>').join('')+'</div></article>';
+  }).join('');
   const showMissing=drive.active()&&loaded&&missing.length>0;
   const missingList=showMissing?missing.map(entry=>
    '<li><button class="receipt-missing-item" type="button" data-receipt-attach="'+esc(entry.id)+'">'+purchaseInfo(entry)+
@@ -73,8 +78,10 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
    '<span class="receipt-attach-action">'+icon('plus',14)+'첨부</span></button></li>').join(''):'';
   const ids=new Set(available().map(e=>e.id));
   const orphans=known().filter(f=>!ids.has(f.entryId)&&inRange(f.date,range()));
-  return '<section class="panel receipt-panel"><div class="panel-head"><div><h2>구매 내역</h2><p class="panel-sub">첨부 완료 '+rows.length+'건 · '+money(totals)+'원</p></div><div class="report-quick-links">'+button('attach','영수증 첨부',true)+(rows.length?button('pdf','기간 PDF 저장'):'')+'</div></div>'+
-   '<div class="receipt-controls">'+connectForm()+(drive.active()?button('reload','Drive 목록 새로고침')+button('disconnect','계정 연결 닫기'):'')+'</div>'+
+  const accountMenu=drive.active()?'<details class="workspace-menu receipt-account-menu"><summary>Drive 계정 '+chevron+'</summary>'+
+   '<div class="workspace-menu-items">'+connectForm()+button('reload','Drive 목록 새로고침')+button('disconnect','계정 연결 닫기')+'</div></details>':'';
+  return '<section class="panel receipt-panel"><div class="panel-head"><div><h2>구매 내역</h2><p class="panel-sub">첨부 완료 '+rows.length+'건 · '+money(totals)+'원</p></div><div class="report-quick-links">'+(rows.length?button('pdf','기간 PDF 저장'):'')+accountMenu+'</div></div>'+
+   (drive.active()?'':'<div class="receipt-controls">'+connectForm()+'</div>')+
    (localFiles.length?'<p class="receipt-notice">기기에서 선택한 임시 첨부는 운영 화면을 벗어나면 지워집니다.</p>':'')+
    (notice?'<p class="receipt-notice" role="status">'+esc(notice)+'</p>':'')+
    (pendingTrash?'<p class="receipt-notice" role="status">이전 이미지 '+pendingTrash+'개의 휴지통 이동을 확인 중입니다. Drive 목록을 새로고침하면 다시 시도합니다.</p>':'')+
@@ -324,7 +331,7 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
   if(action==='cancel-replace'){clearReplacement();renderPreview();$('[name="receiptReplacement"]')?.focus({preventScroll:true});return;}
   if(action==='save-replace'){void saveReplacement();return;}
   if(action==='attach'){attach(null);return;}
-  if(action==='disconnect'){drive.lock();files=[];localFiles=[];loaded=false;pendingTrash=0;accountId='';notice='';redraw();return;}
+  if(action==='disconnect'){drive.lock();files=[];localFiles=[];loaded=false;pendingTrash=0;accountId='';notice='';redraw();$('#page-content [data-receipt-action="connect"]')?.focus({preventScroll:true});return;}
   if(action)void run(action);
  },{signal});
  $('#receipt-preview').addEventListener('close',()=>{
@@ -338,7 +345,7 @@ export function createReceiptPanel(root,{entries,range,showDialog,toast,changed,
   queue=[];target='';
   if(missingReturnIndex>=0){
    const items=root.querySelectorAll('.receipt-missing-item');
-   const next=items[Math.min(missingReturnIndex,items.length-1)]||$('#page-content [data-receipt-action="attach"]');
+   const next=items[Math.min(missingReturnIndex,items.length-1)]||$('.workspace-heading [data-receipt-action="attach"]');
    next?.focus({preventScroll:true});missingReturnIndex=-1;
   }
  },{signal});

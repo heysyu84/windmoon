@@ -7,22 +7,23 @@
   <title>WINDMOON · WORKSPACE</title>
   <meta name="apple-mobile-web-app-title" content="WINDMOON · WORKSPACE">
   <link rel="icon" href="./favicon.svg?v=20261022-wave"><link rel="stylesheet" href="./suite.css?v=20261029-workspace"><link rel="stylesheet" href="./portal.css?v=20261022-clean">
-  <script type="module" src="./suite-nav.js?v=20261103-unified"></script>
+  <script type="module" src="./suite-nav.js?v=20261121-interface"></script>
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20261028">
+  <link rel="stylesheet" href="./staff/workspace-interface.css?v=20261121-interface">
 </head>
 <body data-suite-page="home">
   <header class="home-topbar"><div class="home-breadcrumb"><a href="./">WIND MOON</a><span>/</span><strong>홈</strong></div><time id="today"></time></header>
   <main class="home-main">
     <section class="home-intro" aria-labelledby="home-title">
-      <div><h1 id="home-title">업무공간</h1><p>필요한 업무를 선택하고 바로 시작하세요.</p></div>
+      <div><h1 class="wm-screen-title" id="home-title">업무공간</h1></div>
       <label class="home-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="module-search" type="search" placeholder="업무 도구 검색" aria-label="업무 도구 검색"><kbd>/</kbd></label>
     </section>
     <a id="resume" class="home-resume" hidden><span class="resume-label">최근 사용</span><strong id="resume-name"></strong><span class="resume-action">이어서 열기 <span aria-hidden="true">→</span></span></a>
     <section id="modules" aria-label="업무 도구"><p class="home-empty">업무 도구를 불러오고 있습니다.</p></section>
     <footer class="home-footer">WIND MOON<span>LOUNGE & CLUB</span></footer>
   </main>
-  <noscript><p class="home-empty"><a href="./staff/">직원관리</a> · <a href="./operations/">운영관리</a> · <a href="./attendance/">근무일 조회</a> · <a href="./menu/">메뉴판</a> · <a href="./cards/">명함</a> · <a href="./recipes/">레시피</a></p></noscript>
-  <script type="module" src="./portal.js?v=20261110-attendance"></script>
+  <noscript><p class="home-empty"><a href="./staff/#ops-overview">워크스페이스</a> · <a href="./attendance/">근무일 조회</a> · <a href="./menu/">메뉴판</a> · <a href="./cards/">명함</a> · <a href="./recipes/">레시피</a></p></noscript>
+  <script type="module" src="./portal.js?v=20261121-interface"></script>
 </body>
 </html>
 

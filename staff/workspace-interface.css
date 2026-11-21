@@ -1,0 +1,265 @@
+/* Screen chrome shared by personnel, accounting (Shadow DOM), and the public tools. */
+@media screen {
+  :root, :host {
+    --wm-ink: #20362e;
+    --wm-secondary: #506158;
+    --wm-accent: #204c3b;
+    --wm-line: #d8e1da;
+    --wm-soft: #eff4ef;
+    --wm-radius: 10px;
+    --wm-space: clamp(14px, 1.65vw, 24px);
+    --wm-title: clamp(23px, 2vw, 31px);
+  }
+
+  .app-shell .workspace-heading, .operations-root .workspace-heading {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 10px 16px; min-width: 0; margin: 0 0 var(--wm-space); padding: 0;
+  }
+  .workspace-heading h1, .wm-screen-title, .auth-card h1 {
+    margin: 0; color: var(--wm-ink); font-size: var(--wm-title);
+    font-weight: 720; line-height: 1.25; letter-spacing: -.045em; word-break: keep-all;
+  }
+  .workspace-heading .workspace-actions {
+    display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap;
+    gap: 6px; min-width: 0; margin-left: auto;
+  }
+  .workspace-heading [hidden] { display: none !important; }
+  .workspace-heading :is(.primary, .primary-btn), .auth-form .primary {
+    border: 1px solid var(--wm-accent); background: var(--wm-accent); color: #fff;
+  }
+  .workspace-actions > button, .workspace-menu > summary,
+  .workspace-actions .report-export-menu > summary {
+    box-sizing: border-box; min-height: 38px; border-radius: 8px; line-height: 1.25;
+  }
+  .workspace-actions > button, .workspace-menu > summary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 12px; font-size: 13px; font-weight: 600; white-space: nowrap;
+  }
+  .workspace-actions > :is(.secondary, .secondary-btn), .workspace-menu > summary {
+    background: #fff; border: 1px solid var(--wm-line); color: var(--wm-ink);
+  }
+  .workspace-menu { position: relative; }
+  .workspace-menu > summary { cursor: pointer; list-style: none; }
+  .workspace-menu > summary::-webkit-details-marker { display: none; }
+  #page-tools > summary { width: 38px; padding: 0; }
+  .workspace-menu[open] { z-index: 8; }
+  .workspace-menu[open] > summary { background: var(--wm-soft); border-color: #a6b8ab; }
+  .workspace-menu-items {
+    position: absolute; inset: calc(100% + 5px) 0 auto auto; z-index: 2;
+    display: grid; width: max-content; max-width: min(280px, 80vw); min-width: 148px;
+    padding: 5px; background: #fff; border: 1px solid var(--wm-line); border-radius: var(--wm-radius);
+    box-shadow: 0 6px 20px #182c201a;
+  }
+  .workspace-menu .workspace-menu-items button {
+    display: block; min-height: 42px; width: 100%; background: transparent; padding: 8px 11px;
+    border: 0; border-radius: 5px; text-align: left; color: var(--wm-ink); font: inherit; cursor: pointer;
+  }
+  .workspace-menu .workspace-menu-items button:is(:hover, :focus-visible) { background: var(--wm-soft); }
+  .workspace-menu .receipt-account { padding: 6px 11px; color: var(--wm-secondary); overflow-wrap: anywhere; }
+  .workspace-menu > summary:focus-visible, .workspace-heading button:focus-visible, .receipt-files button:focus-visible {
+    outline: 2px solid var(--wm-accent); outline-offset: 2px;
+  }
+
+  :is(.app-shell, .operations-root) :is(.panel, .daily-bar, .report-period-controls, .account-card),
+  .attendance-screen :is(.filter-panel, .card) {
+    border-color: var(--wm-line); border-radius: var(--wm-radius);
+  }
+  :is(.app-shell, .operations-root) .report-period-controls { margin-bottom: var(--wm-space); }
+  :is(.app-shell, .operations-root) .report-period-controls :is(.period-tabs, .segments) {
+    background: var(--wm-soft); border-radius: 7px;
+  }
+  :is(.app-shell, .operations-root) .report-period-controls :is(.period-tabs, .segments) button { color: var(--wm-secondary); }
+  :is(.app-shell, .operations-root) .report-period-controls :is(.period-tabs, .segments) button.active {
+    background: #fff; color: var(--wm-ink); box-shadow: 0 1px 3px #142e231d;
+  }
+  .app-shell .report-extra-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+  .workspace-date-reset, .app-shell .workspace-filter-toggle, .operations-root .expense-filter-toggle { display: none; }
+  :is(.app-shell, .operations-root) :is(.panel-heading, .panel-head) h2,
+  :is(.app-shell, .operations-root) :is(.modal-head, .dialog-heading) h2 {
+    margin: 0; color: var(--wm-ink); line-height: 1.35; letter-spacing: -.035em;
+  }
+  :is(.app-shell, .operations-root) :is(.panel-heading, .panel-head) h2 { font-size: 17px; font-weight: 680; }
+  :is(.app-shell, .operations-root) :is(.modal-head, .dialog-heading) h2 { font-size: 21px; font-weight: 700; }
+  :is(.app-shell, .operations-root) :is(.panel-sub, .cell-sub, .receipt-meta, .stat-detail) { color: var(--wm-secondary); }
+  :is(.app-shell, .operations-root) :is(.metric-value, .stat-value, .money, .expense-line b, .receipt-row b) { font-variant-numeric: tabular-nums; }
+  .app-shell .nav-label { color: #a9bab1; }
+  .auth-card .auth-form { margin-top: 20px; }
+
+  /* One summary surface. The narrow gutters act as dividers between amounts. */
+  .app-shell .stat-grid, .operations-root .metric-grid {
+    gap: 1px !important; overflow: hidden; margin-bottom: var(--wm-space);
+    background: var(--wm-line); border: 1px solid var(--wm-line); border-radius: var(--wm-radius);
+  }
+  .app-shell .stat-grid .stat, .operations-root .metric-grid .metric-card {
+    min-width: 0; min-height: 0; padding: 15px clamp(12px, 1.45vw, 22px);
+    border: 0; border-radius: 0; box-shadow: none; background: #fff; color: var(--wm-ink);
+  }
+  .app-shell .stat-grid .stat.accent, .operations-root .metric-grid .metric-card.featured { background: #edf4ee; }
+  .app-shell .stat-grid .stat-label, .operations-root .metric-grid .metric-top {
+    display: block; margin: 0 0 4px; color: var(--wm-secondary); font-size: 13px; font-weight: 600; line-height: 1.4;
+  }
+  .operations-root .metric-grid .metric-icon { display: none; }
+  .app-shell .stat-grid .stat-value, .operations-root .metric-grid .metric-value {
+    margin: 0; color: var(--wm-ink); font-size: clamp(19px, 2vw, 28px);
+    font-weight: 690; letter-spacing: -.045em; line-height: 1.24; white-space: normal; overflow-wrap: anywhere;
+  }
+  .app-shell .stat-grid .stat-value small, .operations-root .metric-grid .metric-value small {
+    display: inline; margin-left: 3px; font-size: .56em; color: var(--wm-secondary);
+  }
+  .operations-root .metric-grid .metric-sub, .app-shell .stat-grid .stat-detail {
+    margin-top: 4px; color: var(--wm-secondary); font-size: 12px; line-height: 1.4;
+  }
+
+  .operations-root .expense-summary-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px var(--wm-space); border-bottom: 1px solid var(--wm-line);
+  }
+  .operations-root .expense-summary-head .expense-list-total {
+    display: grid; gap: 3px; padding: 0; margin: 0; border: 0; background: transparent;
+  }
+  .operations-root .expense-views { padding: 0; border: 0; border-radius: 0; background: transparent; }
+  .operations-root .expense-list > .expense-date:first-child { margin-top: 0; }
+  .operations-root .expense-list-total strong { color: var(--wm-ink); }
+  .operations-root .expense-line, .app-shell .work-mobile-row > summary { color: var(--wm-ink); }
+  .operations-root .expense-line small, .app-shell .work-mobile-row small { color: var(--wm-secondary); }
+  .operations-root .expense-date { color: var(--wm-secondary); }
+  .operations-root .funds-view-switch { margin-bottom: 12px; }
+  .operations-root .receipt-panel { overflow: visible; }
+  .operations-root .receipt-panel .panel-head {
+    flex-wrap: wrap; padding: 14px var(--wm-space); gap: 8px 12px; border-bottom: 1px solid var(--wm-line);
+  }
+  .receipt-panel .report-quick-links { margin: 0; gap: 6px; }
+  .receipt-panel .panel-sub { margin: 4px 0 0; }
+  .receipt-panel .receipt-controls { padding: 10px var(--wm-space); }
+  .receipt-panel .receipt-row {
+    display: grid; gap: 5px; padding: 12px var(--wm-space); border-top: 0; border-bottom: 1px solid var(--wm-line);
+  }
+  .receipt-panel .receipt-row:last-child { border-bottom: 0; }
+  .receipt-panel .receipt-row-heading {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline;
+    color: var(--wm-ink); font-size: 16px; text-align: left;
+  }
+  .receipt-panel .receipt-row-heading strong { font-size: inherit; overflow-wrap: anywhere; }
+  .receipt-row-heading b { font-weight: 680; white-space: nowrap; }
+  .receipt-panel .receipt-row-meta { margin: 0; color: var(--wm-secondary); font-size: 13px; overflow-wrap: anywhere; }
+  .receipt-panel .receipt-files { display: flex; flex-wrap: wrap; gap: 3px 10px; text-align: left; }
+  .receipt-files .text-btn {
+    display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 4px 2px;
+    color: var(--wm-accent); text-align: start; overflow-wrap: anywhere;
+  }
+  .receipt-files .text-btn svg { flex: none; }
+  .receipt-panel .receipt-missing { margin-top: 12px; }
+  .operations-root :is(.receipt-purchase strong, .receipt-amount) { color: var(--wm-ink); }
+
+  /* Shared hierarchy for the public hub, employee lookup, and the editing tools. */
+  :is(.home-intro, .title-area, .editor-intro, .inspector-intro, .attendance-screen .intro) .wm-screen-title {
+    margin: 0; font-size: var(--wm-title); font-family: inherit; line-height: 1.25;
+    font-weight: 720; letter-spacing: -.045em; color: var(--wm-ink);
+  }
+  :is(.home-topbar, .wm-tool-topbar, .attendance-screen .mast) { border-bottom: 1px solid var(--wm-line); }
+  .attendance-screen .mast { padding-block: 14px; }
+  .attendance-screen .intro { padding: var(--wm-space) 0; border: 0; }
+  .attendance-screen .filter-panel { margin-top: 0; }
+  .attendance-screen :is(.lead, .label, .hint) { color: var(--wm-secondary); }
+  .attendance-screen .results-head { margin-top: var(--wm-space); }
+  body[data-suite-page=home] .home-intro { margin-bottom: var(--wm-space); }
+  .home-main .module-section { margin-bottom: 24px; }
+  .wm-tool-heading .wm-screen-title { font-size: clamp(18px, 1.6vw, 23px); color: var(--wm-ink); }
+  .home-main .module-card {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-content: center;
+    align-items: center; gap: 5px 14px; min-height: 0; padding: 18px; border-color: var(--wm-line); border-radius: var(--wm-radius);
+  }
+  .home-main .card-top { display: contents; }
+  .home-main .module-icon { grid-column: 1; grid-row: 1 / 3; margin: 0; }
+  .home-main .module-card h3 { grid-column: 2; grid-row: 1; margin: 0; font-size: 17px; color: var(--wm-ink); font-weight: 680; }
+  .home-main .module-card p { grid-column: 2; grid-row: 2; margin: 0; min-height: 0; color: var(--wm-secondary); font-size: 13px; line-height: 1.5; }
+  .home-main .card-arrow { grid-column: 3; grid-row: 1 / 3; }
+  body[data-suite-page=cards] .workspace-heading h2 { margin: 0; font-size: 18px; color: var(--wm-ink); }
+  body[data-suite-page=cards] .editor-intro, body[data-suite-page=menu] .inspector-intro { padding-block: 16px; }
+  body[data-suite-page=recipes] .page-header { min-height: 0; }
+}
+
+@media screen and (max-width: 680px) {
+  .app-shell .main-area > main { padding-top: 15px; }
+  .app-shell .workspace-heading, .operations-root .workspace-heading { flex-wrap: nowrap; }
+  .workspace-heading .workspace-actions { flex: 0 1 auto; gap: 4px; }
+  .workspace-heading .workspace-actions > button { min-height: 44px; padding: 6px 9px; }
+  .workspace-menu > summary, #page-tools > summary { min-height: 44px; }
+  #page-tools > summary { width: 44px; }
+  .workspace-menu-items button, .receipt-panel .receipt-files button { min-height: 44px; }
+  .receipt-panel .report-quick-links { row-gap: 4px; }
+  .app-shell .team-row { margin-bottom: 10px; }
+  .app-shell .report-period-controls, .operations-root .report-period-controls {
+    padding: 9px 10px; align-items: center; gap: 6px; margin-bottom: 12px;
+  }
+  .app-shell .report-period-controls > .period-inputs, .operations-root .report-period-controls > .period-inputs {
+    flex: 0 1 auto; width: auto; min-width: 0; max-width: 100%;
+  }
+  :is(.app-shell, .operations-root) .report-period-controls :is(.segments, .period-tabs) button {
+    padding-inline: 6px; min-width: 38px; min-height: 36px;
+  }
+  .report-period-controls :is(.report-date-today, #period-inputs > [data-action="period-today"]) { display: none; }
+  .report-period-controls :is(.entry-date-trigger > svg:last-child, .picker-caret) { display: none; }
+  .report-period-controls :is(.entry-calendar-heading, .operations-calendar-heading) .workspace-date-reset {
+    display: inline-flex; align-items: center; width: auto; min-height: 40px; margin-left: auto;
+    padding: 4px 8px; border: 0; border-radius: 6px; color: var(--wm-accent); background: var(--wm-soft); font-size: 13px;
+  }
+  .app-shell .report-period-controls .workspace-filter-toggle,
+  .operations-root .expense-filter-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 42px; white-space: nowrap; }
+  .app-shell .report-period-controls .workspace-filter-toggle { padding: 5px 9px; font-size: 13px; }
+  .app-shell .report-extra-filters { display: none; }
+  .app-shell .report-extra-filters.is-open { display: flex; width: 100%; border-top: 1px solid var(--wm-line); padding-top: 7px; }
+  .operations-root #expense-filters:not(.is-open) { display: none; }
+  .operations-root .expense-summary-head { padding-block: 10px; }
+  .operations-root :is(.searchbox, .filter-select, .field) { min-width: 0; }
+  .operations-root :is(.toolbar input, .toolbar select), .app-shell :is(.search input, .report-extra-filters select) { font-size: 16px; }
+  .operations-root .metric-grid, .app-shell .stat-grid { margin-bottom: 12px; }
+  .operations-root .metric-grid .metric-card, .app-shell .stat-grid .stat { padding: 9px 11px; }
+  .operations-root .metric-grid .metric-sub, .app-shell .stat-grid .stat-detail { font-size: 12px; line-height: 1.3; }
+  .app-shell .stat-grid .stat-label, .operations-root .metric-grid .metric-top { margin-bottom: 2px; }
+  .operations-root .funds-view-switch { gap: 6px; }
+  .operations-root .sales-ledger :is(table, tbody, tr, td) { display: block; min-width: 0; width: auto; }
+  .operations-root .sales-ledger table { width: 100%; }
+  .sales-ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .operations-root .sales-ledger tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+    gap: 3px 8px; padding: 10px var(--wm-space); border-top: 1px solid var(--wm-line);
+  }
+  .operations-root .sales-ledger tbody td { margin: 0; padding: 0; border: 0; white-space: normal; overflow-wrap: anywhere; }
+  .sales-ledger td:nth-child(2) { grid-area: 1 / 1; }
+  .sales-ledger td:nth-child(5) { grid-area: 1 / 2; font-weight: 680; }
+  .sales-ledger td:nth-child(5)::after { content: '원'; }
+  .sales-ledger td:first-child { grid-area: 2 / 1; color: var(--wm-secondary); }
+  .sales-ledger td:nth-child(7) { grid-area: 2 / 2; text-align: right; }
+  .operations-root .sales-ledger :is(td:nth-child(3), td:nth-child(4), td:nth-child(6), .panel-bottom > span) { display: none; }
+  .operations-root .sales-ledger .panel-bottom { justify-content: flex-end; }
+  .operations-root .payroll-ledger :is(table, tbody, tfoot, tr, td) { display: block; width: auto; min-width: 0; }
+  .operations-root .payroll-ledger table { width: 100%; }
+  .payroll-ledger thead { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+  .operations-root .payroll-ledger :is(tbody, tfoot) tr {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start;
+    gap: 5px 8px; padding: 12px var(--wm-space); border-top: 1px solid var(--wm-line);
+  }
+  .operations-root .payroll-ledger :is(tbody, tfoot) td {
+    padding: 0; border: 0; white-space: normal; text-align: left; overflow-wrap: anywhere; font-variant-numeric: tabular-nums;
+  }
+  .payroll-ledger tbody td:nth-child(2) { grid-area: 1 / 1 / 2 / 3; }
+  .operations-root .payroll-ledger tbody td:last-child { grid-area: 1 / 3; text-align: right; }
+  .payroll-ledger tbody td:first-child { grid-area: 2 / 1; }
+  .payroll-ledger tbody td:nth-child(3) { grid-area: 2 / 2 / 3 / 4; }
+  .payroll-ledger tbody td:nth-child(3) .cell-sub { display: inline; margin-left: 5px; }
+  .payroll-ledger :is(tbody, tfoot) td:nth-last-child(4)::before { content: '발생 급여'; }
+  .payroll-ledger :is(tbody, tfoot) td:nth-last-child(3)::before { content: '지급액'; }
+  .payroll-ledger :is(tbody, tfoot) td:nth-last-child(2)::before { content: '미지급액'; }
+  .payroll-ledger td::before { display: block; color: var(--wm-secondary); font-size: 12px; font-weight: 500; }
+  .payroll-ledger tfoot td:first-child { grid-column: 1 / -1; }
+  .operations-root .payroll-ledger tfoot td:last-child { display: none; }
+  .home-main .module-grid { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .home-main .module-card { padding: 12px 14px; gap: 4px 11px; }
+  .home-main .module-section { margin-bottom: 19px; }
+  .attendance-screen .filter-panel { padding: 12px; }
+}
+@media screen and (max-width: 365px) {
+  .app-shell .workspace-heading, .operations-root .workspace-heading { flex-wrap: wrap; gap: 4px 6px; }
+  .workspace-heading .workspace-actions { gap: 3px; }
+}

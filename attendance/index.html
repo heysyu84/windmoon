@@ -68,8 +68,9 @@
     @media(max-width:660px){.shell{padding:0 15px 60px}.mast{padding:20px 0 18px}.header-right{gap:6px}.tag{display:none}.filter-panel{margin-top:20px;padding:15px;min-width:0;max-width:100%;overflow:hidden}.period{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:stretch}.field{width:100%;min-width:0;max-width:100%;flex:none}.date-input-frame{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;background:#f8faf8;border:1px solid #dce5dd;border-radius:10px;overflow:hidden}.date-input-frame:focus-within{outline:2px solid #719781;outline-offset:2px}.field input{box-sizing:border-box;display:block;width:100%;min-width:0;max-width:100%;inline-size:100%;max-inline-size:100%;font-size:16px;border:0;border-radius:0;background:transparent;padding:12px 10px;overflow:hidden}.field input::-webkit-date-and-time-value{min-width:0}.field input::-webkit-datetime-edit{min-width:0;max-width:100%}.period-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;min-width:0;flex:none;align-self:stretch}.period-actions .mini{width:100%;min-width:0}.go{width:100%;min-width:0;flex:none}.results-head{align-items:baseline}.cards{grid-template-columns:1fr;gap:10px}.card{padding:16px}.tools{gap:8px}.search{max-width:none;flex-basis:100%}h2{font-size:19px}}
     @media print{@page{size:A4;margin:13mm}body{background:#fff}.shell{max-width:none;padding:0}.mast{padding:0 0 16px}.intro{padding:12px 0}.filter-panel,.tools,footer,.header-right{display:none!important}.results-head{margin:18px 0}.cards{gap:8px}.card{break-inside:avoid;padding:13px}.date{padding:4px 6px}}
   </style>
+  <link rel="stylesheet" href="../staff/workspace-interface.css?v=20261121-interface">
 </head>
-<body>
+<body class="attendance-screen">
   <div class="shell">
     <header class="mast">
       <div class="identity"><img src="../favicon.svg" alt=""><span>WIND MOON</span></div>
@@ -77,8 +78,7 @@
     </header>
     <main>
       <section class="intro">
-        <div class="eyebrow">STAFF ATTENDANCE</div>
-        <h1 id="heading">근무일 조회</h1>
+        <h1 class="wm-screen-title" id="heading">근무일 조회</h1>
         <p class="lead" id="description">기록된 근무 날짜를 확인해 주세요. 실제 근무와 다른 날짜가 있으면 관리자에게 알려주세요.</p>
       </section>
       <section class="filter-panel" aria-label="Period">
