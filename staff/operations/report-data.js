@@ -1,8 +1,9 @@
+import {dayStatus,markedDates} from './calendar.js?v=20261121-workspace';
 import {receiptPaidAmount,paymentMethodLabel,isPaidOnBehalf,summarize,inRange,saleChannel,saleMethodName,migrateSalesChannels,groupPayrollPeriod,paidAmount,outstanding} from './core.js?v=20261119-private-receipts';
 
 export const REPORT_BASIS='매출·지출·급여는 영업일 기준, 카드 수수료는 정산일 기준입니다. 기타 입금과 자금 이동은 제외합니다.';
 export const reportPeriod=range=>range.start===range.end?range.start:range.start+' ~ '+range.end;
-export const closingLabel=day=>day.status==='closed'?'마감 완료':day.status==='draft'?'임시 저장':day.hasSales?'미마감':day.activity?(day.expenses&&!day.payroll?'지출만':'비용만'):'정산만';
+export const closingLabel=day=>day.calendarStatus==='expense-only'?'지출만':day.status==='closed'?'마감 완료':day.status==='draft'?'임시 저장':day.hasSales?'미마감':day.activity?(day.expenses&&!day.payroll?'지출만':'비용만'):'정산만';
 const sum=(rows,key)=>rows.reduce((n,row)=>n+row[key],0);
 function validDate(value){const date=new Date(value+'T00:00:00Z');return /^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;}
 
@@ -33,10 +34,11 @@ export function buildReport(state,range){
  }
  const payroll=state.payroll.filter(row=>inRange(row.businessDate,range));
  for(const row of payroll){if(!row.advanceOnly||row.amount){const day=get(row.businessDate);day.payroll+=row.amount;day.activity=true;}}
- const daily=[...buckets.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(day=>({...day,storeTotal:day.card+day.cash+day.bank,info:day.infoCard+day.infoBank,revenue:day.card+day.cash+day.bank+day.infoCard+day.infoBank+day.other-day.refund,costs:day.expenses+day.fees,totalCosts:day.expenses+day.fees+day.payroll,profit:day.card+day.cash+day.bank+day.infoCard+day.infoBank+day.other-day.refund-day.expenses-day.fees-day.payroll}));
+ const marks=markedDates(state);
+ const daily=[...buckets.values()].sort((a,b)=>a.date.localeCompare(b.date)).map(day=>({...day,calendarStatus:dayStatus(marks.get(day.date)),storeTotal:day.card+day.cash+day.bank,info:day.infoCard+day.infoBank,revenue:day.card+day.cash+day.bank+day.infoCard+day.infoBank+day.other-day.refund,costs:day.expenses+day.fees,totalCosts:day.expenses+day.fees+day.payroll,profit:day.card+day.cash+day.bank+day.infoCard+day.infoBank+day.other-day.refund-day.expenses-day.fees-day.payroll}));
  const totals=Object.fromEntries(['card','cash','bank','infoCard','infoBank','info','storeTotal','other','refund'].map(key=>[key,sum(daily,key)]));
  const summary=Object.fromEntries(Object.entries(summarize(state,range)).map(([key,value])=>[key,typeof value==='number'&&value===0?0:value]));
- const unclosed=daily.filter(day=>(day.hasSales||day.status==='draft')&&day.status!=='closed').length;
+ const unclosed=daily.filter(day=>day.calendarStatus!=='expense-only'&&(day.hasSales||day.status==='draft')&&day.status!=='closed').length;
  const payrollGroups=groupPayrollPeriod(payroll).map(row=>({...row,paid:paidAmount(row),pending:outstanding(row)}));
  const byDate=(a,b)=>a.businessDate.localeCompare(b.businessDate)||(a.title||'').localeCompare(b.title||'','ko');
  return {range:{...range},period:reportPeriod(range),summary,totals,daily,unclosed,closed:daily.filter(day=>day.status==='closed').length,activityDays:daily.filter(day=>day.activity).length,sales:sales.sort(byDate),expenses:[...expenses,...fees].sort(byDate),payrollGroups,payrollUnavailable:!!state.integration?.error,stale:!!state.integration?.stale,demo:!!state.integration?.demo};

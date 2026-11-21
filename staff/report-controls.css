@@ -31,3 +31,23 @@
  .report-period-controls .period-inputs.custom .entry-date-trigger>svg:last-child,.report-period-controls .period-inputs.custom .picker-caret{display:none}
  .report-period-controls .period-inputs.custom .entry-date-trigger,.report-period-controls .period-inputs.custom .operations-date-trigger{font-size:12px;padding-inline:7px}
 }
+
+.report-period-controls .range-direct{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:9px}
+.range-direct label{display:grid;min-width:0;gap:3px;color:#435749;font-size:12px}
+.report-period-controls .range-direct input{display:block;box-sizing:border-box;appearance:none;-webkit-appearance:none;width:100%;min-width:0;max-width:100%;height:40px;padding:4px 5px;border:1px solid #d5dfd7;border-radius:6px;color:#243a2d;background:#fff;font-size:16px}
+.range-direct input::-webkit-date-and-time-value{text-align:left}
+.range-apply{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.range-apply span{font-size:12px;color:#495d4e}
+.range-apply button{border:0;border-radius:6px;background:#264737;color:#fff;font-weight:600;min-height:40px;padding:0 12px;cursor:pointer}
+.range-apply button:disabled{opacity:.5}
+.operations-calendar-grid .range-inside,.entry-calendar .work-range-middle .rdp-day_button{background:#e1ece2}
+.entry-calendar .work-range-edge .rdp-day_button{background:#25483a;color:white;border-color:#25483a}
+@media(max-width:640px){
+ .report-period-controls:has(>.period-inputs.custom)>.period-inputs.custom{flex:0 1 auto;width:auto}
+ .report-period-controls:has(>.period-inputs.custom){gap:6px 8px}
+ .report-period-controls:has(>.period-inputs.custom) :is(.segments,.period-tabs) button{padding-inline:7px}
+ .report-period-controls .period-inputs.custom :is(.entry-date-trigger,.operations-date-trigger){font-size:13px;padding-inline:7px;gap:4px}
+ .report-period-controls .period-inputs.custom :is(.picker-caret,.entry-date-trigger>svg:last-child){display:none}
+ .operations-calendar-popover:has(.range-direct),.entry-calendar:has(.range-direct){box-sizing:border-box;width:min(360px,calc(100vw - 20px));max-width:calc(100vw - 20px);max-height:calc(100dvh - 24px);overflow-y:auto}
+ .operations-calendar-popover:has(.range-direct) .operations-calendar-day{height:40px}
+}

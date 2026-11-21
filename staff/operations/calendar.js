@@ -1,3 +1,4 @@
+import {rangeLabel} from '../date-range.mjs';
 // Shared date picker for operations: saved entries, day closings, and linked payroll.
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const shiftDay = (date, days) => { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0,10); };
@@ -39,7 +40,7 @@ const legend = Object.entries(statuses).map(([status, {label}]) =>
  '<span><i class="'+status+'" aria-hidden="true"></i>'+label+'</span>'
 ).join('');
 
-function dayStatus(day) {
+export function dayStatus(day) {
  if (!day) return '';
  if (day.expenses > 0 && day.expenses === day.entries && day.payroll === 0 && !day.hasClosingSales) return 'expense-only';
  if (day.closing) return day.closing;
@@ -48,11 +49,12 @@ function dayStatus(day) {
 
 const calendarIcon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4m8-4v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></svg>';
 const caretIcon='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-const labels = {day:'조회 일자',month:'조회 월',start:'조회 시작일',end:'조회 종료일'};
-export function datePickerHtml({field,value,opened=false,viewMonth,counts=new Map(),today}) {
+const labels = {day:'조회 일자',month:'조회 월',start:'조회 시작일',end:'조회 종료일',range:'조회 기간'};
+export function datePickerHtml({field,value,opened=false,viewMonth,counts=new Map(),today,range,selection}) {
  const isMonth=field==='month';
  const label=labels[field]||'날짜';
- const display=String(value||'').replaceAll('-','.');
+ const isRange=field==='range';
+ const display=isRange?rangeLabel(range.start,range.end):String(value||'').replaceAll('-','.');
  const title=label+' 달력 '+(opened?'닫기':'열기');
  const trigger='<div class="operations-date-picker" data-picker-field="'+field+'"><button type="button" class="operations-date-trigger" data-calendar-toggle="'+field+'" aria-haspopup="dialog" aria-expanded="'+opened+'" aria-label="'+title+'">'+calendarIcon+'<time datetime="'+value+'">'+display+'</time><span class="picker-caret" aria-hidden="true">'+caretIcon+'</span></button>';
  if(!opened) return trigger+'</div>';
@@ -69,12 +71,15 @@ export function datePickerHtml({field,value,opened=false,viewMonth,counts=new Ma
   if(status==='expense-only'&&info.closing)descriptions.push(statuses[info.closing].description);
   const statusText=descriptions.join(' · ');
   const detail=info?' · 거래 '+info.entries+'건 · 직원급여 '+info.payroll+'건':'';
-  const flags=[date.slice(0,7)===validMonth?'':'other-month',date===today?'today':'',isMonth?(date===value+'-01'?'selected':''):(date===value?'selected':''),status?'has-data status-'+status:''].filter(Boolean).join(' ');
-  return '<button type="button" class="operations-calendar-day '+flags+'" data-calendar-day="'+date+'" aria-label="'+date+' · '+statusText+detail+'" title="'+date+' · '+statusText+detail+'" '+(date===value?'aria-current="date"':'')+'><span>'+day+'</span>'+(status?'<i class="operations-calendar-dot" aria-hidden="true"></i>':'')+'</button>';
+  const flags=[date.slice(0,7)===validMonth?'':'other-month',date===today?'today':'',isMonth?(date===value+'-01'?'selected':''):(isRange?(date===selection.start||date===selection.end?'selected':date>selection.start&&date<selection.end?'range-inside':''):date===value?'selected':''),status?'has-data status-'+status:''].filter(Boolean).join(' ');
+  return '<button type="button" class="operations-calendar-day '+flags+'" data-calendar-day="'+date+'" aria-label="'+date+' · '+statusText+detail+'" title="'+date+' · '+statusText+detail+'" '+(isRange?'aria-pressed="'+(date>=selection.start&&date<=selection.end)+'"':date===value?'aria-current="date"':'')+'><span>'+day+'</span>'+(status?'<i class="operations-calendar-dot" aria-hidden="true"></i>':'')+'</button>';
  }).join('');
  const years=Array.from({length:201},(_,i)=>1900+i).map(y=>'<option value="'+y+'" '+(y===year?'selected':'')+'>'+y+'년</option>').join('');
  const months=Array.from({length:12},(_,i)=>i+1).map(m=>'<option value="'+m+'" '+(m===month?'selected':'')+'>'+m+'월</option>').join('');
  const directId=field==='day'||field==='month'?'period-value':field==='start'?'period-start':'period-end';
  const directType=isMonth?'month':'date';
- return trigger+'<div class="operations-calendar-popover" role="dialog" aria-label="'+label+' 달력"><div class="operations-calendar-heading"><strong>'+label+'</strong><button type="button" data-calendar-close="1" aria-label="달력 닫기" class="operations-calendar-x">×</button></div><div class="operations-calendar-monthbar"><button type="button" data-calendar-nav="-1" aria-label="이전 달">‹</button><div class="operations-calendar-selects"><select data-calendar-year aria-label="달력 연도">'+years+'</select><select data-calendar-month aria-label="달력 월">'+months+'</select></div><button type="button" data-calendar-nav="1" aria-label="다음 달">›</button></div><div class="operations-calendar-grid">'+heads+days+'</div><div class="operations-calendar-legend" aria-label="달력 상태 범례">'+legend+'</div>'+(isMonth?'<button type="button" class="operations-calendar-apply" data-calendar-apply-month="1">이 달 조회</button>':'')+'<label class="operations-calendar-direct">'+label+' 직접 입력<input id="'+directId+'" type="'+directType+'" value="'+value+'" aria-label="'+label+' 직접 입력"></label></div></div>';
+ const direct=isRange?
+  '<div class="range-direct">'+['start','end'].map(key=>'<label>'+labels[key]+'<input id="period-'+key+'" type="date" aria-label="'+labels[key]+'" value="'+selection[key]+'"></label>').join('')+'</div><div class="range-apply"><span role="status">'+(selection.pickingEnd?'종료일을 선택하세요':rangeLabel(selection.start,selection.end))+'</span><button type="button" data-calendar-apply-range>기간 적용</button></div>':
+  '<label class="operations-calendar-direct">'+label+' 직접 입력<input id="'+directId+'" type="'+directType+'" value="'+value+'" aria-label="'+label+' 직접 입력"></label>';
+ return trigger+'<div class="operations-calendar-popover" role="dialog" aria-label="'+label+' 달력"><div class="operations-calendar-heading"><strong>'+label+'</strong><button type="button" data-calendar-close="1" aria-label="달력 닫기" class="operations-calendar-x">×</button></div><div class="operations-calendar-monthbar"><button type="button" data-calendar-nav="-1" aria-label="이전 달">‹</button><div class="operations-calendar-selects"><select data-calendar-year aria-label="달력 연도">'+years+'</select><select data-calendar-month aria-label="달력 월">'+months+'</select></div><button type="button" data-calendar-nav="1" aria-label="다음 달">›</button></div><div class="operations-calendar-grid">'+heads+days+'</div><div class="operations-calendar-legend" aria-label="달력 상태 범례">'+legend+'</div>'+(isMonth?'<button type="button" class="operations-calendar-apply" data-calendar-apply-month="1">이 달 조회</button>':'')+direct+'</div></div>';
 }

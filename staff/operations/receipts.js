@@ -1,5 +1,5 @@
 import {isPaidOnBehalf, receiptPaidAmount, inRange, paymentMethodLabel} from './core.js?v=20261119-private-receipts';
-import {escape as esc, icon, money, shortDate} from './views.js?v=20261119-private-receipts';
+import {escape as esc, icon, money, shortDate} from './views.js?v=20261121-workspace';
 import {attachmentOrder,createReceiptDrive,clientIdForDevice,loadGoogleIdentity,mimeForReceipt,receiptDigest} from './receipt-drive.js?v=20261119-replace-photo';
 
 const imageTypes='image/jpeg,image/png,image/webp';
